@@ -109,8 +109,10 @@ export interface ProcessRecord {
   distributionDate?: string;
   parties?: Party[];
   movements?: Movement[];
+  /** Total the portal announces for the movements table; `movements` may be shorter if paging failed. */
+  movementsTotal?: number;
   documents?: DocumentRecord[];
-  /** Whether the detail page has been fetched and parsed. */
+  /** True only when the detail page was parsed AND every movements page was collected. */
   detailFetched: boolean;
   /** ISO timestamps of the first and last time this record was written. */
   firstSeenAt: string;

@@ -1,5 +1,4 @@
 /** Tests for the pure store helpers: range merging and document merging. */
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mergeDocuments, mergeRanges } from '../storage/store';
 import { DocumentRecord } from '../types';
@@ -24,6 +23,14 @@ test('mergeDocuments never downgrades a completed download', () => {
   assert.equal(merged[0]!.status, 'downloaded');
   assert.equal(merged[0]!.file, 'pdfs/a.pdf');
   assert.equal(merged[0]!.bytes, 1000);
+});
+
+test('a later successful download clears the error kept from an earlier failure', () => {
+  const failed: DocumentRecord = { id: 'p-DOC-1', idProcessoDocumento: '1', title: 'A', download: 'binary', status: 'failed', error: 'HTTP 429' };
+  const succeeded: DocumentRecord = { id: 'p-DOC-1', idProcessoDocumento: '1', title: 'A', download: 'binary', status: 'downloaded', file: 'pdfs/a.pdf', bytes: 2000 };
+  const merged = mergeDocuments([failed], [succeeded])!;
+  assert.equal(merged[0]!.status, 'downloaded');
+  assert.equal(merged[0]!.error, undefined, 'stale error must not survive a successful download');
 });
 
 test('mergeDocuments adds new documents and updates fields of existing ones', () => {

@@ -9,8 +9,11 @@
  * a document always starts from a detail page fetched in the same session and
  * never from a URL stored in a previous run.
  *
- * Failures are isolated per document: a 429 that survives every retry marks
- * that document as failed in failed.json and the run moves to the next one.
+ * Failures are isolated per item: a 429 that survives every retry marks that
+ * document (or process) as failed in failed.json and the run moves on. A
+ * movements table that could not be paged to the end leaves the process with
+ * `detailFetched: false` and a failure entry, so a later run finishes it —
+ * a truncated history is never silently recorded as complete.
  */
 import * as cheerio from 'cheerio';
 import { CONFIG } from '../config';
@@ -20,7 +23,7 @@ import { PjeSession } from '../pje/session';
 import { Store } from '../storage/store';
 import { DocumentRecord, Movement, ProcessRecord } from '../types';
 import { log, describeError } from '../util/logger';
-import { HttpFatalError, HttpRetryableError, SessionExpiredError, UnexpectedStructureError, withRetry } from '../util/retry';
+import { HttpFatalError, HttpRetryableError, SessionExpiredError, UnexpectedStructureError, WafBlockedError, withRetry } from '../util/retry';
 
 export interface EnrichStats {
   processes: number;
@@ -53,15 +56,16 @@ export class Enricher {
   }
 
   async run(opts: EnrichOptions = {}): Promise<EnrichStats> {
-    const pending = this.store
-      .all()
-      .filter((p) => (opts.onlyIds ? opts.onlyIds.has(p.id) : true))
-      .filter((p) => opts.refresh || !p.detailFetched || hasPendingDocuments(p))
-      .sort((a, b) => a.id.localeCompare(b.id));
-    log.info(`enrichment: ${pending.length} process(es) pending of ${this.store.count()}`);
+    const pendingIds = this.store
+      .entries()
+      .filter((e) => (opts.onlyIds ? opts.onlyIds.has(e.id) : true))
+      .filter((e) => opts.refresh || !e.detailFetched || e.docsPending > 0 || e.docsFailed > 0)
+      .map((e) => e.id)
+      .sort();
+    log.info(`enrichment: ${pendingIds.length} process(es) pending of ${this.store.count()}`);
     if (!this.session.isOpen) await this.session.open();
     let processed = 0;
-    for (const process of pending) {
+    for (const id of pendingIds) {
       if (CONFIG.limits.maxProcesses > 0 && processed >= CONFIG.limits.maxProcesses) {
         this.stats.stoppedByLimit = true;
         log.info(`process limit reached (${CONFIG.limits.maxProcesses}): stopping, progress is saved`);
@@ -72,6 +76,8 @@ export class Enricher {
         log.info(`document limit reached (${CONFIG.limits.maxDocuments}): stopping, progress is saved`);
         break;
       }
+      const process = this.store.get(id);
+      if (!process) continue;
       processed++;
       this.stats.processes++;
       await this.enrichOne(process, opts);
@@ -90,7 +96,9 @@ export class Enricher {
           if (!this.session.isOpen || this.session.requestCount >= CONFIG.sessionMaxRequests) await this.session.open();
           return this.session.getDetail(process.ca);
         },
-        { label: `detail ${process.id}`, onRetry: async () => this.session.open() },
+        { label: `detail ${process.id}`, onRetry: async (err) => {
+          if (err instanceof SessionExpiredError || err instanceof WafBlockedError) await this.session.open();
+        } },
       );
     } catch (err) {
       this.stats.detailsFailed++;
@@ -107,10 +115,8 @@ export class Enricher {
       log.error(`detail ${process.id}: ${describeError(err)}`);
       return;
     }
-    this.store.clearFailure(process.id);
-    this.stats.detailsFetched++;
 
-    const movements = await this.collectMovements(html, parsed.movements, parsed.movementsPager, parsed.movementsTotal, process);
+    const { movements, complete } = await this.collectMovements(html, parsed.movements, parsed.movementsPager, parsed.movementsTotal, process);
     const documents = parsed.documents.map((d) => toDocumentRecord(process.id, d));
     const updated: ProcessRecord = {
       ...process,
@@ -120,13 +126,22 @@ export class Enricher {
       details: parsed.details,
       parties: parsed.parties,
       movements,
+      movementsTotal: parsed.movementsTotal,
       documents,
-      detailFetched: true,
+      // A truncated movement history is not a fetched detail: the next run redoes it.
+      detailFetched: complete,
       updatedAt: new Date().toISOString(),
     };
     this.store.upsert(updated);
+    if (complete) {
+      this.store.clearFailure(process.id);
+      this.stats.detailsFetched++;
+    } else {
+      this.stats.detailsFailed++;
+      this.store.recordFailure(process.id, 'detail', `movements truncated: ${movements.length} of ${parsed.movementsTotal} collected`);
+    }
     const record = this.store.get(process.id)!;
-    log.info(`detail ${process.id}: ${parsed.parties.length} parties, ${movements.length}/${parsed.movementsTotal} movements, ${documents.length} documents`);
+    log.info(`detail ${process.id}: ${parsed.parties.length} parties, ${movements.length}/${parsed.movementsTotal} movements, ${documents.length} documents${complete ? '' : ' (INCOMPLETE, will retry)'}`);
 
     if (opts.skipDownloads) return;
     const detailUrl = `${CONFIG.paths.detail}?ca=${process.ca}`;
@@ -147,23 +162,41 @@ export class Enricher {
     }
   }
 
-  /** Every page of the movements table, using the slider pager when there is more than one. */
-  private async collectMovements(html: string, firstPage: Movement[], pager: ReturnType<typeof parseDetail>['movementsPager'], total: number, process: ProcessRecord): Promise<Movement[]> {
+  /**
+   * Every page of the movements table. Returns whether the full history was
+   * collected. A SessionExpiredError aborts immediately: later pages need the
+   * very view state that just died, so retrying against the same document is
+   * futile — the process is refetched whole on the next run.
+   */
+  private async collectMovements(
+    html: string,
+    firstPage: Movement[],
+    pager: ReturnType<typeof parseDetail>['movementsPager'],
+    total: number,
+    process: ProcessRecord,
+  ): Promise<{ movements: Movement[]; complete: boolean }> {
     const all = [...firstPage];
-    if (!pager || pager.pages <= 1 || total <= firstPage.length) return all;
+    if (total <= firstPage.length) return { movements: all, complete: true };
+    if (!pager || pager.pages <= 1) {
+      log.warn(`movements ${process.id}: portal announces ${total} but no pager is present`);
+      return { movements: all, complete: false };
+    }
     const $detail = cheerio.load(html);
     for (let page = 2; page <= pager.pages; page++) {
       try {
         await withRetry(() => this.session.getMovementsPage($detail, pager, page, process.ca), { label: `movements ${process.id} p${page}`, maxAttempts: 3 });
-        const rows = parseMovementRows($detail);
-        if (rows.length === 0) break;
-        all.push(...rows);
       } catch (err) {
-        log.warn(`movements ${process.id} page ${page}: ${describeError(err)} (keeping ${all.length} of ${total})`);
-        break;
+        log.warn(`movements ${process.id} page ${page}/${pager.pages}: ${describeError(err)} (collected ${all.length} of ${total})`);
+        return { movements: all, complete: false };
       }
+      const rows = parseMovementRows($detail);
+      if (rows.length === 0) {
+        log.warn(`movements ${process.id} page ${page}/${pager.pages} came back empty (collected ${all.length} of ${total})`);
+        return { movements: all, complete: false };
+      }
+      all.push(...rows);
     }
-    return all;
+    return { movements: all, complete: all.length >= total };
   }
 
   private async downloadOne(process: ProcessRecord, doc: DocumentRecord, fresh: DetailDocument, detailUrl: string): Promise<void> {
@@ -181,11 +214,11 @@ export class Enricher {
         {
           label: `document ${doc.id}`,
           onRetry: async (err) => {
-            if (err instanceof SessionExpiredError) await this.session.open();
+            if (err instanceof SessionExpiredError || err instanceof WafBlockedError) await this.session.open();
           },
         },
       );
-      this.store.updateDocument(process.id, { ...doc, status: 'downloaded', file: result.file, bytes: result.bytes, error: undefined });
+      this.store.updateDocument(process.id, { ...doc, status: 'downloaded', file: result.file, bytes: result.bytes });
       this.store.clearFailure(doc.id);
       this.stats.documentsDownloaded++;
       if (CONFIG.includeReceipts && doc.receiptUrl) {
@@ -205,10 +238,6 @@ export class Enricher {
       else log.error(`document ${doc.id} failed after retries${status ? ` (HTTP ${status})` : ''}: ${reason}`);
     }
   }
-}
-
-function hasPendingDocuments(p: ProcessRecord): boolean {
-  return (p.documents ?? []).some((d) => d.status === 'pending' || d.status === 'failed');
 }
 
 function httpStatusOf(err: unknown): number | undefined {

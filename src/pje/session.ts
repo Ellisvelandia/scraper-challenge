@@ -27,7 +27,7 @@ import type { CheerioAPI } from 'cheerio';
 import { CONFIG } from '../config';
 import { HttpClient } from '../http/client';
 import { log } from '../util/logger';
-import { SessionExpiredError, UnexpectedStructureError } from '../util/retry';
+import { HttpRetryableError, SessionExpiredError, UnexpectedStructureError } from '../util/retry';
 import { applyA4jResponse, buildA4jBody, FormPairs, isViewExpired, parseA4jParameters } from './a4j';
 import { MovementsPager } from './detailParser';
 import { ListPage, parseListPage } from './listParser';
@@ -124,7 +124,16 @@ export class PjeSession {
   async getDetail(ca: string): Promise<string> {
     const url = `${CONFIG.paths.detail}?ca=${ca}`;
     const res = await this.http.get(url, { headers: { Referer: CONFIG.baseUrl + CONFIG.paths.list } });
-    if (res.status === 302) throw new SessionExpiredError(`detail page redirected to ${res.headers['location'] ?? '?'}`);
+    if (res.status === 302) {
+      const location = res.headers['location'] ?? '?';
+      // errorUnexpected.seam is the portal's "connection pool exhausted / internal
+      // error" page: the session is fine, the server needs a breather. Reopening
+      // the session for it wastes ~2 requests per retry against a loaded server.
+      if (/errorUnexpected\.seam/i.test(location)) {
+        throw new HttpRetryableError(503, 20_000, `portal error page (errorUnexpected) for detail ?ca=${ca.slice(0, 12)}…`);
+      }
+      throw new SessionExpiredError(`detail page redirected to ${location}`);
+    }
     if (res.status !== 200) throw new UnexpectedStructureError(`detail page returned HTTP ${res.status}`);
     if (!/Detalhe do Processo|processoDocumentoGridTab|Dados do Processo/i.test(res.text)) {
       throw new UnexpectedStructureError('detail page does not look like a process detail');

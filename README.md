@@ -46,7 +46,7 @@ En PowerShell las variables se fijan antes: `$env:MAX_DOCUMENTS='4'; npm run all
 | `npm run all` | Las dos fases, en orden |
 | `npm run retry-failed` | Reintenta lo anotado en `output/failed.json` |
 | `npm run status` | Progreso a partir de los ficheros de salida, sin red |
-| `npm test` | Compila y corre la suite offline (fixtures reales, sin red) |
+| `npm test` | Suite de Jest, offline (fixtures reales del portal, sin red) |
 | `npm run build` / `npm run typecheck` | Compilación / solo chequeo de tipos |
 
 ### Variables de entorno
@@ -58,6 +58,8 @@ En PowerShell las variables se fijan antes: `$env:MAX_DOCUMENTS='4'; npm run all
 | `MAX_PROCESSES` | 0 = sin límite | Tope de fichas de la Fase 2 por ejecución |
 | `MAX_DOCUMENTS` | 0 = sin límite | Tope de PDFs descargados por ejecución |
 | `MIN_DELAY_MS` / `JITTER_MS` | 700 / 300 | Pausa mínima + jitter entre peticiones |
+| `REQUEST_TIMEOUT_MS` | 60000 | Timeout por petición HTTP |
+| `SESSION_MAX_REQUESTS` | 400 | Peticiones por sesión JSF antes de reciclarla |
 | `MAX_ATTEMPTS` | 5 | Intentos por petición antes de anotar el fallo y seguir |
 | `RETRY_BASE_MS` / `RETRY_MAX_MS` | 2000 / 120000 | Base y techo del backoff exponencial |
 | `WAF_COOLDOWN_MS` | 90000 | Pausa tras la página de bloqueo del WAF |
@@ -71,7 +73,8 @@ En PowerShell las variables se fijan antes: `$env:MAX_DOCUMENTS='4'; npm run all
 
 | Ruta | Contenido |
 |---|---|
-| `output/processes.json` | Procesos indexados por id estable `BR-TRF5-<númeroCNJ>` (o `BR-TRF5-ca-<hash>` si el portal no publica el número). Dedupe O(1) por construcción. |
+| `output/processes/<id>.json` | Un fichero por proceso, con id estable `BR-TRF5-<númeroCNJ>` (o `BR-TRF5-ca-<hash>` si el portal no publica el número). Escritura atómica O(1) por actualización: un solo JSON monolítico no aguantaría los 106.763 procesos del corpus. |
+| `output/index.json` | Índice ligero (una entrada pequeña por proceso) para dedupe y progreso; se reconstruye desde `processes/` si falta o se corrompe |
 | `output/processes.csv` / `output/documents.csv` | Exportación tabular (UTF-8 con BOM, apto para Excel) |
 | `output/pdfs/<idProceso>/<idProceso>_<idDoc>_<fecha>_<título>.pdf` | Un PDF por documento, nombre descriptivo y estable |
 | `output/state.json` | Rangos completados, días saturados, total medido: el estado de reanudación |

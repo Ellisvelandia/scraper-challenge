@@ -2,7 +2,6 @@
  * Tests for the detail-page parser, run offline against a real captured detail
  * page (`fixtures/detail-process.html`) with the session id redacted.
  */
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseDetail, splitParty, toDocumentRecord } from '../pje/detailParser';
 import { UnexpectedStructureError } from '../util/retry';

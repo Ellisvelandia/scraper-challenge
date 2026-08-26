@@ -2,7 +2,6 @@
  * Tests for the A4J (RichFaces 3.3) request builder and response applier, using
  * the real landing page fixture and a small synthetic A4J response.
  */
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as cheerio from 'cheerio';
 import { applyA4jResponse, buildA4jBody, parseA4jForm, parseA4jParameters, serializeForm, setFieldBySuffix } from '../pje/a4j';

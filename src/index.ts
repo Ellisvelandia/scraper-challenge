@@ -85,15 +85,13 @@ async function main(argv: string[]): Promise<number> {
 }
 
 function printStatus(store: Store): void {
-  const all = store.all();
-  const withDetail = all.filter((p) => p.detailFetched).length;
-  const docs = all.flatMap((p) => p.documents ?? []);
-  const by = (s: string) => docs.filter((d) => d.status === s).length;
+  const entries = store.entries();
+  const sum = (f: (e: (typeof entries)[number]) => number) => entries.reduce((a, e) => a + f(e), 0);
   const state = store.getState();
   const lines = [
-    `processes discovered : ${all.length}${state.measuredTotal ? ` of ${state.measuredTotal} announced by the portal` : ''}`,
-    `details fetched      : ${withDetail}`,
-    `documents            : ${docs.length} (downloaded ${by('downloaded')}, pending ${by('pending')}, failed ${by('failed')}, unavailable ${by('unavailable')})`,
+    `processes discovered : ${entries.length}${state.measuredTotal ? ` of ${state.measuredTotal} announced by the portal` : ''}`,
+    `details fetched      : ${entries.filter((e) => e.detailFetched).length}`,
+    `documents            : ${sum((e) => e.docsTotal)} (downloaded ${sum((e) => e.docsDownloaded)}, pending ${sum((e) => e.docsPending)}, failed ${sum((e) => e.docsFailed)}, unavailable ${sum((e) => e.docsUnavailable)})`,
     `completed ranges     : ${state.completedRanges.length}${state.completedRanges.length ? ` (${state.completedRanges[0]!.from} .. ${state.completedRanges[state.completedRanges.length - 1]!.to})` : ''}`,
     `saturated days       : ${state.saturatedDays.length}`,
     `failures to retry    : ${store.failures().length}`,

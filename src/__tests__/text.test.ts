@@ -1,5 +1,4 @@
 /** Tests for identifier construction and safe file naming. */
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { documentId, extractCnj, processId, safeFileName, unescapeJs } from '../util/text';
 

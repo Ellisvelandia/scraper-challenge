@@ -5,7 +5,7 @@ node_modules/
 dist/
 
 # Scraper output: extracted data, PDFs, run state and logs
-output/
+output/*
 !output/.gitkeep
 
 # Environment and local overrides

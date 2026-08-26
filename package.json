@@ -15,8 +15,8 @@
     "retry-failed": "ts-node src/index.ts retry-failed",
     "status": "ts-node src/index.ts status",
     "build": "tsc",
-    "typecheck": "tsc --noEmit",
-    "test": "tsc && node --test \"dist/__tests__/*.test.js\""
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+    "test": "jest"
   },
   "keywords": [
     "scraper",
@@ -34,7 +34,10 @@
     "cheerio": "^1.2.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.0.0",
+    "jest": "^30.4.2",
+    "ts-jest": "^29.4.12",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }

@@ -1,33 +1,32 @@
 /**
  * Phase 1 — discovery: enumerate every process of the portal.
  *
- * THE PORTAL HAS NO PAGER. Every filtered search returns at most 30 rows and
- * announces min(total, 30); the "Paginação" slot in the footer is rendered
- * empty. Measured on 2026-08-25: an unfiltered count says 106,763 processes,
- * a whole year says "30", a single day says its real number (0–12 in the
- * sampled month). So "navigating all the pages" means partitioning the search
- * space until every partition fits under the cap:
+ * THE PORTAL HAS NO PAGER. Every filtered search returns at most 30 rows; when
+ * the query matched more, the response carries an explicit overflow banner
+ * ("…somente os 30 primeiros serão exibidos"). So "navigating all the pages"
+ * means partitioning the search space until every partition fits under the cap:
  *
  *   [DATE_FROM, DATE_TO]  →  search by dataAutuacao range
- *        n < 30  → every process of the range is in the response: store them,
- *                  mark the range completed.
- *        n == 30 → capped: split the range in two halves and recurse.
- *        1 day and still capped → secondary split by class name (the class of
- *                  each of the 30 visible rows, then "everything else" cannot be
- *                  expressed, so the day is flagged in state.json as saturated).
+ *        not capped → every process of the range is in the response: store
+ *                     them, mark the range completed.
+ *        capped     → split the range in two halves and recurse.
+ *        1 day and still capped → secondary split by the class names visible in
+ *                     the capped response itself; whatever provably remains
+ *                     unreachable is flagged in state.json.saturatedDays.
  *
- * Ranges already completed in a previous run are skipped, so the phase resumes
- * where it stopped. The result of each search is written straight into the
- * store; the detail page is fetched in phase 2.
+ * A response that carries a portal message (validation or error) instead of a
+ * result table NEVER completes a range: it is recorded in failed.json so a
+ * later run retries it. Ranges already completed are skipped, which is what
+ * makes the phase resumable.
  */
 import { CONFIG } from '../config';
 import { PjeSession } from '../pje/session';
-import { ListRow } from '../pje/listParser';
+import { ListPage, ListRow } from '../pje/listParser';
 import { Store } from '../storage/store';
 import { DateRange, ProcessRecord } from '../types';
 import { daysInRange, isoToBr, splitRange } from '../util/dates';
 import { log, describeError } from '../util/logger';
-import { isRetryable, SessionExpiredError, sleep, withRetry } from '../util/retry';
+import { SessionExpiredError, WafBlockedError, withRetry } from '../util/retry';
 import { processId, SOURCE } from '../util/text';
 
 export interface DiscoverStats {
@@ -36,11 +35,14 @@ export interface DiscoverStats {
   seenProcesses: number;
   completedRanges: number;
   saturatedDays: number;
+  failedRanges: number;
   stoppedByLimit: boolean;
 }
 
+type RangeOutcome = { kind: 'done' } | { kind: 'capped'; page: ListPage } | { kind: 'failed' };
+
 export class Discoverer {
-  private readonly stats: DiscoverStats = { searches: 0, newProcesses: 0, seenProcesses: 0, completedRanges: 0, saturatedDays: 0, stoppedByLimit: false };
+  private readonly stats: DiscoverStats = { searches: 0, newProcesses: 0, seenProcesses: 0, completedRanges: 0, saturatedDays: 0, failedRanges: 0, stoppedByLimit: false };
   private session: PjeSession;
 
   constructor(private readonly store: Store, session?: PjeSession) {
@@ -62,13 +64,13 @@ export class Discoverer {
       const range = stack.pop()!;
       if (this.store.isRangeCompleted(range)) continue;
       const outcome = await this.searchRange(range);
-      if (outcome === 'capped') {
+      if (outcome.kind === 'capped') {
         if (daysInRange(range) > 1) {
           const [a, b] = splitRange(range);
           // Push the later half first so the earlier one is processed next (chronological order).
           stack.push(b, a);
         } else {
-          await this.splitDayByClass(range.from);
+          await this.splitDayByClass(range.from, outcome.page);
         }
       }
       this.store.save();
@@ -107,10 +109,11 @@ export class Discoverer {
     }
   }
 
-  /** Searches one range; stores rows; returns whether the range hit the cap. */
-  private async searchRange(range: DateRange, className?: string): Promise<'done' | 'capped'> {
+  /** Searches one range; stores rows; reports whether the range was capped, done or failed. */
+  private async searchRange(range: DateRange, className?: string): Promise<RangeOutcome> {
     const label = `${range.from}..${range.to}${className ? ` class="${className}"` : ''}`;
-    let page;
+    const failureKey = `range:${range.from}:${range.to}${className ? `:${className}` : ''}`;
+    let page: ListPage;
     try {
       page = await withRetry(
         async () => {
@@ -120,19 +123,26 @@ export class Discoverer {
         {
           label: `search ${label}`,
           onRetry: async (err) => {
-            if (err instanceof SessionExpiredError || !isRetryable(err)) await this.session.open();
-            else this.session.http.resetSession(), await this.session.open();
+            // Reopen only when the session itself is the problem; a plain 429
+            // must not cost an extra landing request against a throttled server.
+            if (err instanceof SessionExpiredError || err instanceof WafBlockedError) await this.session.open();
           },
         },
       );
     } catch (err) {
-      this.store.recordFailure(`range:${range.from}:${range.to}${className ? `:${className}` : ''}`, 'search', describeError(err));
+      this.stats.failedRanges++;
+      this.store.recordFailure(failureKey, 'search', describeError(err));
       log.error(`search ${label} failed permanently: ${describeError(err)}`);
-      return 'done';
+      return { kind: 'failed' };
     }
     this.stats.searches++;
     if (page.message) {
-      log.warn(`search ${label}: portal message "${page.message}"`);
+      // A validation/error message means the portal did NOT run this query:
+      // completing the range here would silently write the whole partition off.
+      this.stats.failedRanges++;
+      this.store.recordFailure(failureKey, 'search', `portal message: ${page.message}`);
+      log.warn(`search ${label}: portal message "${page.message}" -> range NOT completed`);
+      return { kind: 'failed' };
     }
     let fresh = 0;
     for (const row of page.rows) {
@@ -140,37 +150,38 @@ export class Discoverer {
     }
     this.stats.newProcesses += fresh;
     this.stats.seenProcesses += page.rows.length;
-    const capped = page.isCapped;
-    log.info(`search ${label}: ${page.rows.length} rows (${fresh} new)${capped ? ' CAPPED → split' : ''} | total stored ${this.store.count()}`);
-    if (!capped && !className) {
+    this.store.clearFailure(failureKey);
+    log.info(`search ${label}: ${page.rows.length} rows (${fresh} new)${page.isCapped ? ' CAPPED -> split' : ''} | total stored ${this.store.count()}`);
+    if (!page.isCapped && !className) {
       this.store.markRangeCompleted(range);
       this.stats.completedRanges++;
     }
-    return capped ? 'capped' : 'done';
+    return page.isCapped ? { kind: 'capped', page } : { kind: 'done' };
   }
 
   /**
-   * Secondary split for a day that still returns 30 rows. The class name field
-   * is a LIKE filter, so each distinct class seen in the capped answer becomes a
-   * sub-query. Rows whose class never surfaced cannot be reached; the day is
-   * recorded as saturated so the gap is explicit rather than silent.
+   * Secondary split for a day that still returns the cap. The class names come
+   * from the capped response itself (they are printed in every row), so this
+   * always has something to query. Whatever the class sub-queries cannot prove
+   * complete is recorded as a saturated day: an explicit gap, never a silent one.
    */
-  private async splitDayByClass(day: string): Promise<void> {
+  private async splitDayByClass(day: string, cappedPage: ListPage): Promise<void> {
     const range: DateRange = { from: day, to: day };
-    const known = new Set<string>();
-    for (const p of this.store.all()) {
-      if (p.foundInRange?.from === day && p.className) known.add(p.className);
-    }
-    log.warn(`day ${day} is capped at ${CONFIG.resultCap}: splitting by ${known.size} class name(s)`);
-    let residual = false;
-    for (const className of known) {
+    const classes = [...new Set(cappedPage.rows.map((r) => r.className).filter((c): c is string => !!c))];
+    log.warn(`day ${day} is capped at ${CONFIG.resultCap}: splitting by ${classes.length} class name(s) seen in the capped response`);
+    let residual = classes.length === 0;
+    for (const className of classes) {
       const outcome = await this.searchRange(range, className);
-      if (outcome === 'capped') residual = true;
-      await sleep(0);
+      if (outcome.kind !== 'done') residual = true;
     }
-    this.store.markSaturatedDay(day, true, residual ? 'some classes still capped' : 'all known classes below the cap; unseen classes cannot be queried');
+    // The overflow banner is the portal's own statement that rows were hidden;
+    // only then is the day's coverage genuinely partial (classes we never saw
+    // cannot be queried). Without the banner a 30-row day is simply complete.
+    if (cappedPage.overflowBanner) {
+      this.store.markSaturatedDay(day, true, residual ? 'some class sub-queries failed or were still capped' : 'all classes seen in the response are covered; classes hidden past the cap cannot be queried');
+      this.stats.saturatedDays++;
+    }
     this.store.markRangeCompleted(range);
-    this.stats.saturatedDays++;
   }
 
   private storeRow(row: ListRow, range: DateRange): boolean {
@@ -193,12 +204,6 @@ export class Discoverer {
       firstSeenAt: now,
       updatedAt: now,
     };
-    const existing = this.store.get(id);
-    if (existing) {
-      // Keep the detail data; refresh only what the list publishes.
-      record.detailFetched = existing.detailFetched;
-      record.foundInRange = existing.foundInRange ?? range;
-    }
     return this.store.upsert(record);
   }
 }

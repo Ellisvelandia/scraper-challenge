@@ -48,9 +48,18 @@ export interface ListPage {
   announcedTotal: number;
   /** True when the query hit the cap and the range must be split to see every row. */
   isCapped: boolean;
+  /**
+   * True when the portal explicitly said rows were hidden ("…somente os N
+   * primeiros serão exibidos"). This is the authoritative overflow signal; a
+   * day with exactly `cap` processes has `isCapped` but no banner.
+   */
+  overflowBanner: boolean;
   /** Validation message shown by the portal instead of results, if any. */
   message?: string;
 }
+
+/** "Sua consulta retornou muitos processos e somente os 30 primeiros serão exibidos" */
+const OVERFLOW_BANNER = /somente\s+os\s+\d+\s+primeiros\s+ser[aã]o\s+exibidos/i;
 
 const CA_RE = /listView\.seam\?ca=([0-9a-fA-F]+)/;
 
@@ -59,7 +68,7 @@ export function parseListPage($: CheerioAPI): ListPage {
   const table = $('table[id$=":processosTable"]').first();
   const message = clean($('dl.rich-messages').text()) || undefined;
   if (table.length === 0) {
-    if (message) return { rows: [], announcedTotal: 0, isCapped: false, message };
+    if (message) return { rows: [], announcedTotal: 0, isCapped: false, overflowBanner: false, message };
     throw new UnexpectedStructureError('results table (…:processosTable) not found');
   }
   const footer = clean(table.find('tfoot .text-muted').text());
@@ -72,8 +81,9 @@ export function parseListPage($: CheerioAPI): ListPage {
     if (row) rows.push(row);
   });
 
-  const isCapped = rows.length >= CONFIG.resultCap;
-  return { rows, announcedTotal: announcedTotal || rows.length, isCapped, message };
+  const overflowBanner = OVERFLOW_BANNER.test($.root().text());
+  const isCapped = overflowBanner || rows.length >= CONFIG.resultCap;
+  return { rows, announcedTotal: announcedTotal || rows.length, isCapped, overflowBanner, message };
 }
 
 function parseRow($: CheerioAPI, tr: Parameters<CheerioAPI>[0]): ListRow | undefined {

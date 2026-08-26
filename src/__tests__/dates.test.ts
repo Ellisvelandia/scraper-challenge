@@ -1,5 +1,4 @@
 /** Tests for the date helpers that drive the range-partitioning crawler. */
-import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { addDays, brDateTimeToIso, brToIso, daysInRange, isoToBr, splitRange } from '../util/dates';
 

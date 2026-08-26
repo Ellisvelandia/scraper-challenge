@@ -81,9 +81,10 @@ export class HttpClient {
     return [...this.jar.keys()];
   }
 
-  /** Drops every cookie: the next request starts a new server session. */
+  /** Drops every cookie and restarts the per-session request counter. */
   resetSession(): void {
     this.jar.clear();
+    this.requestCount = 0;
   }
 
   get(pathOrUrl: string, opts: RequestOptions = {}): Promise<HttpResponse> {

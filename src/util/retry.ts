@@ -69,10 +69,16 @@ export function isRetryable(err: unknown): boolean {
   return false;
 }
 
+/**
+ * An explicit Retry-After is a server instruction, so it is honoured beyond the
+ * exponential-backoff cap; this ceiling only guards against absurd values.
+ */
+const RETRY_AFTER_HARD_CAP_MS = 15 * 60 * 1000;
+
 /** Exponential backoff with full jitter, honouring Retry-After when the server sent one. */
 export function backoffMs(attempt: number, err?: unknown): number {
   if (err instanceof HttpRetryableError && err.retryAfterMs !== undefined) {
-    return Math.min(err.retryAfterMs, CONFIG.retry.maxDelayMs);
+    return Math.min(err.retryAfterMs, RETRY_AFTER_HARD_CAP_MS);
   }
   if (err instanceof WafBlockedError) return CONFIG.retry.wafCooldownMs;
   const exp = CONFIG.retry.baseDelayMs * 2 ** Math.max(0, attempt - 1);
@@ -109,7 +115,16 @@ export async function withRetry<T>(fn: (attempt: number) => Promise<T>, opts: Re
       const status = err instanceof HttpRetryableError ? ` (HTTP ${err.status})` : '';
       log.warn(`${opts.label}: attempt ${attempt}/${max} failed${status}: ${describeError(err)} -> waiting ${Math.round(wait / 1000)}s`);
       await sleep(wait);
-      if (opts.onRetry) await opts.onRetry(err, attempt + 1);
+      if (opts.onRetry) {
+        try {
+          await opts.onRetry(err, attempt + 1);
+        } catch (hookErr) {
+          // The recovery hook does network I/O (reopening the session) and can
+          // itself hit the throttle. That must consume this retry's budget, not
+          // abort the whole loop and misattribute the failure.
+          log.warn(`${opts.label}: recovery before attempt ${attempt + 1} failed too: ${describeError(hookErr)}`);
+        }
+      }
     }
   }
   throw lastErr;
@@ -117,10 +132,10 @@ export async function withRetry<T>(fn: (attempt: number) => Promise<T>, opts: Re
 
 /** Parses a Retry-After header (seconds or HTTP date) to milliseconds. */
 export function parseRetryAfter(value: string | undefined): number | undefined {
-  if (!value) return undefined;
-  const secs = Number(value);
-  if (Number.isFinite(secs)) return Math.max(0, secs * 1000);
-  const when = Date.parse(value);
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (/^\d+$/.test(trimmed)) return Number(trimmed) * 1000;
+  const when = Date.parse(trimmed);
   if (Number.isNaN(when)) return undefined;
   return Math.max(0, when - Date.now());
 }
