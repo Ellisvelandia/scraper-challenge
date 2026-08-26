@@ -54,7 +54,7 @@ export const CONFIG = {
 
   retry: {
     /** Attempts per request before the item is recorded in failed.json and skipped. */
-    maxAttempts: envInt('MAX_ATTEMPTS', 5),
+    maxAttempts: envInt('MAX_ATTEMPTS', 3),
     /** Exponential backoff: base * 2^(attempt-1), capped, with jitter. Retry-After wins when present. */
     baseDelayMs: envInt('RETRY_BASE_MS', 2_000),
     maxDelayMs: envInt('RETRY_MAX_MS', 120_000),
@@ -67,7 +67,12 @@ export const CONFIG = {
     maxProcesses: envInt('MAX_PROCESSES', 0),
     maxDocuments: envInt('MAX_DOCUMENTS', 0),
     maxSearches: envInt('MAX_SEARCHES', 0),
+    /** Stop phase 1 once this many processes are stored (counts what earlier runs stored too). */
+    maxDiscovered: envInt('MAX_DISCOVERED', 0),
   },
+
+  /** Phase 2 without PDFs: fetch every detail page (parties, movements, document list) but download nothing. */
+  skipDownloads: envBool('SKIP_DOWNLOADS', false),
 
   /** Requests sent through one JSF session before it is recycled (the portal keeps view state per session). */
   sessionMaxRequests: envInt('SESSION_MAX_REQUESTS', 400),

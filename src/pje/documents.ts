@@ -27,8 +27,9 @@ import { CONFIG } from '../config';
 import { HttpClient, HttpResponse } from '../http/client';
 import { DocumentRecord, ProcessRecord } from '../types';
 import { log } from '../util/logger';
-import { HttpFatalError, SessionExpiredError, UnexpectedStructureError } from '../util/retry';
+import { HttpFatalError, HttpRetryableError, SessionExpiredError, UnexpectedStructureError } from '../util/retry';
 import { safeFileName } from '../util/text';
+import { renameSyncWithRetry } from '../util/fs';
 import { byId, serializeForm } from './a4j';
 import { DetailDocument } from './detailParser';
 
@@ -75,7 +76,7 @@ export class DocumentDownloader {
     fs.mkdirSync(path.dirname(target), { recursive: true });
     const part = `${target}.part`;
     fs.writeFileSync(part, res.body);
-    fs.renameSync(part, target);
+    renameSyncWithRetry(part, target);
     log.info(`PDF ${relative} (${res.body.length} B)`);
     return { file: relative, bytes: res.body.length };
   }
@@ -90,7 +91,7 @@ export class DocumentDownloader {
     validatePdf(res);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(`${target}.part`, res.body);
-    fs.renameSync(`${target}.part`, target);
+    renameSyncWithRetry(`${target}.part`, target);
     return { file: relative, bytes: res.body.length };
   }
 
@@ -99,6 +100,10 @@ export class DocumentDownloader {
     if (first.status === 302) {
       const location = first.headers['location'];
       if (!location) throw new UnexpectedStructureError('binary download redirected without Location');
+      if (/errorUnexpected\.seam/i.test(location)) {
+        // The portal's "pool exhausted" page: the session is fine, the server needs a pause (same as getDetail).
+        throw new HttpRetryableError(503, 20_000, 'portal error page (errorUnexpected) on the binary download');
+      }
       if (/ConsultaPublica\/listView\.seam/.test(location) && !/download\.seam/.test(location)) {
         throw new SessionExpiredError('binary download redirected to the landing page');
       }
@@ -110,7 +115,12 @@ export class DocumentDownloader {
   private async fetchViaViewer(viewerUrl: string, detailUrl: string): Promise<HttpResponse> {
     const url = viewerUrl.startsWith('/') ? viewerUrl : CONFIG.paths.detailDir + viewerUrl;
     const page = await this.http.get(url, { headers: { Referer: CONFIG.baseUrl + detailUrl } });
-    if (page.status === 302) throw new SessionExpiredError('document viewer redirected: the hash is not valid for this session');
+    if (page.status === 302) {
+      if (/errorUnexpected\.seam/i.test(page.headers['location'] ?? '')) {
+        throw new HttpRetryableError(503, 20_000, 'portal error page (errorUnexpected) on the document viewer');
+      }
+      throw new SessionExpiredError('document viewer redirected: the hash is not valid for this session');
+    }
     if (page.status !== 200) throw new HttpFatalError(page.status, `viewer returned HTTP ${page.status}`);
     const $ = cheerio.load(page.text);
     const button = $('[id$=":downloadPDF"]').first();

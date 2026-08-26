@@ -25,6 +25,7 @@ import { CONFIG } from '../config';
 import { CrawlState, DateRange, DocumentRecord, FailedItem, ProcessRecord } from '../types';
 import { log } from '../util/logger';
 import { safeFileName } from '../util/text';
+import { renameSyncWithRetry } from '../util/fs';
 
 /** Small per-process summary kept in memory and in index.json. */
 export interface IndexEntry {
@@ -45,7 +46,7 @@ function writeJsonAtomic(file: string, value: unknown): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.tmp`;
   fs.writeFileSync(tmp, JSON.stringify(value, null, 2));
-  fs.renameSync(tmp, file);
+  renameSyncWithRetry(tmp, file);
 }
 
 /**
@@ -303,8 +304,8 @@ export class Store {
       fs.closeSync(pFd);
       fs.closeSync(dFd);
     }
-    fs.renameSync(pTmp, CONFIG.output.processesCsv);
-    fs.renameSync(dTmp, CONFIG.output.documentsCsv);
+    renameSyncWithRetry(pTmp, CONFIG.output.processesCsv);
+    renameSyncWithRetry(dTmp, CONFIG.output.documentsCsv);
   }
 
   // ------------------------------------------------------------- start-up
@@ -333,6 +334,34 @@ export class Store {
       if (entries.length > 0) this.dirty.index = true;
     }
     for (const e of entries) this.index.set(e.id, e);
+    this.reconcileShards();
+  }
+
+  /**
+   * Shards are written the moment a record changes; index.json only every
+   * 60 s / 500 updates. After a hard kill (no SIGINT: taskkill, power loss)
+   * the index can lag the shards, and an entry missing from it is invisible to
+   * phase 2, the CSV export and `status`. So the shard directory is the
+   * authority at start-up: whatever it holds that the index lacks is added.
+   */
+  private reconcileShards(): void {
+    const known = new Set([...this.index.keys()].map((id) => `${safeFileName(id, 120)}.json`));
+    let added = 0;
+    for (const file of fs.readdirSync(this.processesDir)) {
+      if (!file.endsWith('.json') || known.has(file)) continue;
+      try {
+        const rec = JSON.parse(fs.readFileSync(path.join(this.processesDir, file), 'utf8')) as ProcessRecord;
+        this.index.set(rec.id, toIndexEntry(rec));
+        added++;
+      } catch (err) {
+        log.warn(`shard ${file} unreadable while reconciling the index: ${(err as Error).message}`);
+      }
+    }
+    if (added > 0) {
+      this.dirty.index = true;
+      this.dirtyIndexCount += added;
+      log.info(`index.json was behind the shard files: ${added} process(es) recovered`);
+    }
   }
 
   /** One-time migration from the old single-file layout. */

@@ -56,14 +56,22 @@ export class Enricher {
   }
 
   async run(opts: EnrichOptions = {}): Promise<EnrichStats> {
+    // A process whose detail already exhausted its attempts is left to
+    // `retry-failed`: retrying it on every resume costs the full backoff
+    // schedule each time (3 x 20 s for the portal's errorUnexpected page).
+    const knownFailed = new Set(opts.refresh ? [] : this.store.failures().filter((f) => f.stage === 'detail').map((f) => f.key));
     const pendingIds = this.store
       .entries()
       .filter((e) => (opts.onlyIds ? opts.onlyIds.has(e.id) : true))
-      .filter((e) => opts.refresh || !e.detailFetched || e.docsPending > 0 || e.docsFailed > 0)
+      .filter((e) => !knownFailed.has(e.id))
+      // Without downloads a process is done once its detail is complete; its
+      // pending documents are for a later run without SKIP_DOWNLOADS.
+      .filter((e) => opts.refresh || !e.detailFetched || (!opts.skipDownloads && (e.docsPending > 0 || e.docsFailed > 0)))
       .map((e) => e.id)
       .sort();
-    log.info(`enrichment: ${pendingIds.length} process(es) pending of ${this.store.count()}`);
-    if (!this.session.isOpen) await this.session.open();
+    log.info(`enrichment: ${pendingIds.length} process(es) pending of ${this.store.count()}${opts.skipDownloads ? ' (details only, no PDF)' : ''}${knownFailed.size ? `, ${knownFailed.size} with a recorded detail failure left to retry-failed` : ''}`);
+    // The session is opened lazily inside enrichOne's retry loop, so a 429 or
+    // a WAF page on the landing GET is backed off instead of ending the run.
     let processed = 0;
     for (const id of pendingIds) {
       if (CONFIG.limits.maxProcesses > 0 && processed >= CONFIG.limits.maxProcesses) {
@@ -116,7 +124,13 @@ export class Enricher {
       return;
     }
 
-    const { movements, complete } = await this.collectMovements(html, parsed.movements, parsed.movementsPager, parsed.movementsTotal, process);
+    // The detail HTML must be re-fetched on every pass (document links are
+    // session-bound), but a movement history already collected in full is not
+    // re-paged: that is one A4J POST per 15 movements saved on the PDF pass.
+    const historyKept = process.detailFetched && process.movements !== undefined && process.movements.length >= parsed.movementsTotal;
+    const { movements, complete } = historyKept
+      ? { movements: process.movements!, complete: true }
+      : await this.collectMovements(html, parsed.movements, parsed.movementsPager, parsed.movementsTotal, process);
     const documents = parsed.documents.map((d) => toDocumentRecord(process.id, d));
     const updated: ProcessRecord = {
       ...process,

@@ -52,13 +52,14 @@ export class Discoverer {
   /** Walks the configured date window. Returns run statistics. */
   async run(window: DateRange = { from: CONFIG.dateFrom, to: CONFIG.dateTo }): Promise<DiscoverStats> {
     log.info(`discovery window ${window.from}..${window.to} (${daysInRange(window)} days), result cap ${CONFIG.resultCap}`);
-    if (!this.session.isOpen) await this.session.open();
+    if (!this.session.isOpen) await withRetry(() => this.session.open(), { label: 'open session' });
     await this.measureTotal();
     const stack: DateRange[] = [window];
     while (stack.length > 0) {
-      if (this.limitReached()) {
+      const limit = this.limitReached();
+      if (limit) {
         this.stats.stoppedByLimit = true;
-        log.info(`search limit reached (${CONFIG.limits.maxSearches}): stopping discovery, progress is saved`);
+        log.info(`${limit} limit reached: stopping discovery, progress is saved`);
         break;
       }
       const range = stack.pop()!;
@@ -80,8 +81,11 @@ export class Discoverer {
     return this.stats;
   }
 
-  private limitReached(): boolean {
-    return CONFIG.limits.maxSearches > 0 && this.stats.searches >= CONFIG.limits.maxSearches;
+  /** Which per-run limit stopped the phase, or undefined to keep going. */
+  private limitReached(): string | undefined {
+    if (CONFIG.limits.maxSearches > 0 && this.stats.searches >= CONFIG.limits.maxSearches) return `search (${CONFIG.limits.maxSearches})`;
+    if (CONFIG.limits.maxDiscovered > 0 && this.store.count() >= CONFIG.limits.maxDiscovered) return `discovered processes (${CONFIG.limits.maxDiscovered})`;
+    return undefined;
   }
 
   /**
@@ -172,9 +176,19 @@ export class Discoverer {
     const classes = [...new Set(cappedPage.rows.map((r) => r.className).filter((c): c is string => !!c))];
     log.warn(`day ${day} is capped at ${CONFIG.resultCap}: splitting by ${classes.length} class name(s) seen in the capped response`);
     let residual = classes.length === 0;
+    let failed = false;
     for (const className of classes) {
       const outcome = await this.searchRange(range, className);
-      if (outcome.kind !== 'done') residual = true;
+      if (outcome.kind === 'failed') failed = true;
+      else if (outcome.kind === 'capped') residual = true;
+    }
+    if (failed) {
+      // A class query that exhausted its retries is recorded in failed.json;
+      // completing the day would make that gap permanent (completed ranges are
+      // never revisited). Leaving it open costs the next run one capped search
+      // plus the class queries, which is cheap.
+      log.warn(`day ${day}: a class sub-query failed, the day stays open so the next discover run redoes it`);
+      return;
     }
     // The overflow banner is the portal's own statement that rows were hidden;
     // only then is the day's coverage genuinely partial (classes we never saw

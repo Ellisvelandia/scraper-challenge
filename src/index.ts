@@ -30,7 +30,7 @@ async function main(argv: string[]): Promise<number> {
   }
   log.setDebug(CONFIG.debug);
   log.setFile(CONFIG.output.log);
-  log.info(`command=${command} base=${CONFIG.baseUrl} output=${CONFIG.output.dir}`);
+  log.info(`command=${command} base=${CONFIG.baseUrl} output=${CONFIG.output.dir} attempts=${CONFIG.retry.maxAttempts}${CONFIG.skipDownloads ? ' skipDownloads=1' : ''}`);
 
   const store = new Store();
   const stop = () => {
@@ -52,15 +52,15 @@ async function main(argv: string[]): Promise<number> {
       return 0;
     }
     case 'download': {
-      const s = await new Enricher(store).run();
-      log.info(`download done: ${s.detailsFetched} details, ${s.documentsDownloaded} PDFs downloaded, ${s.documentsFailed} failed, ${s.documentsUnavailable} unavailable${s.stoppedByLimit ? ', stopped by limit' : ''}`);
+      const s = await new Enricher(store).run({ skipDownloads: CONFIG.skipDownloads });
+      log.info(`download done: ${s.detailsFetched} details, ${s.documentsDownloaded} PDFs downloaded, ${s.documentsFailed} failed, ${s.documentsUnavailable} unavailable${s.stoppedByLimit ? ', stopped by limit' : ''}${CONFIG.skipDownloads ? ' (SKIP_DOWNLOADS: no PDF requested)' : ''}`);
       return 0;
     }
     case 'all': {
       const d = await new Discoverer(store).run();
       log.info(`discovery: ${d.searches} searches, ${d.newProcesses} new processes (${store.count()} total)`);
-      const e = await new Enricher(store).run();
-      log.info(`download: ${e.detailsFetched} details, ${e.documentsDownloaded} PDFs, ${e.documentsFailed} failed`);
+      const e = await new Enricher(store).run({ skipDownloads: CONFIG.skipDownloads });
+      log.info(`download: ${e.detailsFetched} details, ${e.documentsDownloaded} PDFs, ${e.documentsFailed} failed${CONFIG.skipDownloads ? ' (SKIP_DOWNLOADS: no PDF requested)' : ''}`);
       return 0;
     }
     case 'retry-failed': {
@@ -72,11 +72,14 @@ async function main(argv: string[]): Promise<number> {
       const ids = new Set<string>();
       for (const f of failures) {
         if (f.stage === 'detail') ids.add(f.key);
-        else if (f.stage === 'document') ids.add(f.key.replace(/-DOC-\d+$/, ''));
+        // A document failure can only be retried by downloading: without downloads the detail fetch would be wasted.
+        else if (f.stage === 'document' && !CONFIG.skipDownloads) ids.add(f.key.replace(/-DOC-\d+$/, ''));
       }
+      const documentFailures = () => store.failures().filter((f) => f.stage === 'document').length;
+      if (CONFIG.skipDownloads) log.info(`SKIP_DOWNLOADS: ${documentFailures()} document failure(s) left for a run without the flag`);
       log.info(`retrying ${failures.length} failure(s) across ${ids.size} process(es)`);
-      const e = await new Enricher(store).run({ onlyIds: ids, refresh: true });
-      log.info(`retry done: ${e.detailsFetched} details, ${e.documentsDownloaded} PDFs, ${e.documentsFailed} still failing`);
+      const e = ids.size > 0 ? await new Enricher(store).run({ onlyIds: ids, refresh: true, skipDownloads: CONFIG.skipDownloads }) : undefined;
+      if (e) log.info(`retry done: ${e.detailsFetched} details, ${e.documentsDownloaded} PDFs, ${documentFailures()} document(s) still failing`);
       const ranges = failures.filter((f) => f.stage === 'search');
       if (ranges.length > 0) log.info(`${ranges.length} search range(s) failed earlier: run "npm run discover" again, completed ranges are skipped`);
       return 0;

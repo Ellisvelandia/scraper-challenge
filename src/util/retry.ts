@@ -123,8 +123,12 @@ export async function withRetry<T>(fn: (attempt: number) => Promise<T>, opts: Re
         } catch (hookErr) {
           // The recovery hook does network I/O (reopening the session) and can
           // itself hit the throttle. That must consume this retry's budget, not
-          // abort the whole loop and misattribute the failure.
-          log.warn(`${opts.label}: recovery before attempt ${attempt + 1} failed too: ${describeError(hookErr)}`);
+          // abort the whole loop and misattribute the failure. Its own
+          // Retry-After / WAF cooldown is honoured before the next attempt:
+          // firing straight away would hit the server inside its own window.
+          const hookWait = backoffMs(attempt, hookErr);
+          log.warn(`${opts.label}: recovery before attempt ${attempt + 1} failed too: ${describeError(hookErr)} -> waiting ${Math.round(hookWait / 1000)}s`);
+          await sleep(hookWait);
         }
       }
     }

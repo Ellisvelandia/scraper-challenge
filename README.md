@@ -55,12 +55,14 @@ En PowerShell las variables se fijan antes: `$env:MAX_DOCUMENTS='4'; npm run all
 |---|---|---|
 | `DATE_FROM` / `DATE_TO` | `1985-01-01` / hoy | Ventana (ISO) que particiona la Fase 1 |
 | `MAX_SEARCHES` | 0 = sin límite | Tope de búsquedas de la Fase 1 por ejecución |
+| `MAX_DISCOVERED` | 0 = sin límite | Detiene la Fase 1 al tener N procesos almacenados (cuenta los de corridas anteriores) |
 | `MAX_PROCESSES` | 0 = sin límite | Tope de fichas de la Fase 2 por ejecución |
 | `MAX_DOCUMENTS` | 0 = sin límite | Tope de PDFs descargados por ejecución |
+| `SKIP_DOWNLOADS` | off | Fase 2 sin PDFs: abre cada ficha (partes, movimentações, lista de documentos) y no descarga nada; una corrida posterior sin la variable descarga los PDFs pendientes |
 | `MIN_DELAY_MS` / `JITTER_MS` | 700 / 300 | Pausa mínima + jitter entre peticiones |
 | `REQUEST_TIMEOUT_MS` | 60000 | Timeout por petición HTTP |
 | `SESSION_MAX_REQUESTS` | 400 | Peticiones por sesión JSF antes de reciclarla |
-| `MAX_ATTEMPTS` | 5 | Intentos por petición antes de anotar el fallo y seguir |
+| `MAX_ATTEMPTS` | 3 | Intentos por petición antes de anotar el fallo y seguir |
 | `RETRY_BASE_MS` / `RETRY_MAX_MS` | 2000 / 120000 | Base y techo del backoff exponencial |
 | `WAF_COOLDOWN_MS` | 90000 | Pausa tras la página de bloqueo del WAF |
 | `PJE_BASE_URL` | `https://pjett.trf5.jus.br` | Otra instancia del mismo PJe |
@@ -214,6 +216,11 @@ ejercitado contra el portal en la corrida de demostración (`output/scraper.log`
   `state.json.saturatedDays` (ninguno en las ventanas muestreadas).
 - **Documentos sin ruta pública** (enlace `about:blank` sin binario ni visor) se
   registran con `status: "unavailable"`.
+- **Partes:** las tres tablas de partes (polo ativo, polo passivo, outros
+  interessados) llevan un `rich:dataScroller` propio; el scraper lee la página
+  que la ficha renderiza. Un proceso con más partes que una página del scroller
+  queda con la lista de partes truncada (no se ha observado en la muestra; las
+  movimentações sí se paginan completas).
 - `reportPDF.seam` (expediente completo, botón «Imprimir») devuelve 302 fuera
   del flujo del navegador; no se usa. Los PDFs se obtienen documento a documento.
 

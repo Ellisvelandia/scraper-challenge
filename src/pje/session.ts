@@ -28,6 +28,7 @@ import { CONFIG } from '../config';
 import { HttpClient } from '../http/client';
 import { log } from '../util/logger';
 import { HttpRetryableError, SessionExpiredError, UnexpectedStructureError } from '../util/retry';
+import { clean } from '../util/text';
 import { applyA4jResponse, buildA4jBody, FormPairs, isViewExpired, parseA4jParameters } from './a4j';
 import { MovementsPager } from './detailParser';
 import { ListPage, parseListPage } from './listParser';
@@ -72,8 +73,18 @@ export class PjeSession {
 
   /** Opens (or reopens) the landing page and reads the search contract from it. */
   async open(): Promise<void> {
+    // A failed reopen must leave the session closed: the cookie jar is reset
+    // below, so a stale `$` would make the next attempt POST an old ViewState
+    // with no cookies instead of opening a fresh session.
+    this.$ = undefined;
+    this.searchControl = undefined;
     this.http.resetSession();
     const res = await this.http.get(CONFIG.paths.list);
+    if (res.status === 302) {
+      const location = res.headers['location'] ?? '?';
+      const pause = /errorUnexpected\.seam/i.test(location) ? 20_000 : undefined;
+      throw new HttpRetryableError(503, pause, `landing page redirected to ${location}`);
+    }
     if (res.status !== 200) throw new UnexpectedStructureError(`landing page returned HTTP ${res.status}`);
     const $ = cheerio.load(res.text);
     const form = $('form[id="fPP"]');
@@ -111,8 +122,15 @@ export class PjeSession {
     }
     if (isViewExpired(res.text)) throw new SessionExpiredError();
     const applied = applyA4jResponse($, res.text);
-    if (applied.updatedIds.length === 0) {
-      throw new UnexpectedStructureError('search response updated nothing');
+    // Only a response that re-rendered the results grid may be parsed: a
+    // messages-only update (validation error, or the decoy button) leaves the
+    // previous table in `$`, and parsing that would complete a range with
+    // rows that belong to another query, or with none.
+    if (!applied.updatedIds.some((id) => /processosGridPanel|processosTable/.test(id))) {
+      const message = clean($('dl.rich-messages').text());
+      throw new UnexpectedStructureError(
+        `search response did not render the results grid (updated: ${applied.updatedIds.join(', ') || 'nothing'})${message ? `: ${message}` : ''}`,
+      );
     }
     return parseListPage($);
   }
