@@ -81,6 +81,19 @@ En PowerShell las variables se fijan antes: `$env:MAX_DOCUMENTS='4'; npm run all
 | `output/failed.json` | Cada fallo con su fase, motivo, nº de intentos y última marca de tiempo |
 | `output/scraper.log` | Log completo de la ejecución |
 
+### Volumen de la corrida de demostración (2026-08-26)
+
+Corrida acotada con `MAX_*`, reanudable desde `state.json` hasta el final del
+corpus. Cifras tomadas de `output/scraper.log` y `npm run status`:
+
+| Métrica | Valor |
+|---|---|
+| Corpus anunciado por el portal (`state.json.measuredTotal`) | 106.763 procesos |
+| Procesos descubiertos (Fase 1) | 2.493, rango 1985-01-01 → 2014-04-13 completado, 0 días saturados |
+| Fichas completas (Fase 2) | 4 (37 partes, 520/520 movimentações paginadas, 23 documentos) |
+| PDF descargados | 7 (196 KB, validados por content-type y firma `%PDF-`), versionados como muestra en `output/pdfs/` |
+| Fallos registrados | 1 ficha (`errorUnexpected.seam` tras 5 intentos con backoff 2 s → 3 s → 8 s → 14 s), pendiente de `npm run retry-failed` |
+
 ---
 
 ## Cómo funciona (lo que hubo que descubrir)
@@ -158,7 +171,7 @@ src/
 ├── storage/store.ts      Persistencia atómica: JSON, CSV, estado, fallos
 ├── util/                 retry/backoff, fechas, logger, texto e ids
 └── __tests__/            Suite offline con fixtures REALES capturados del portal
-                          (sesiones redactadas): parsers, A4J, fechas, store
+                          (sesiones redactadas): parsers, A4J, fechas, store, retry
 docs/protocolo.md         El protocolo del portal, petición a petición
 ```
 
@@ -169,6 +182,30 @@ Cada proceso recibe un id estable `PAIS-FUENTE-<clave única de la fuente>`:
 documento `…-DOC-<idProcessoDocumento>`. Los procesos en segredo de justiça,
 que el portal lista sin número, usan el hash con el que el propio portal los
 abre: `BR-TRF5-ca-<hash>`.
+
+## Cumplimiento del enunciado
+
+Cada requisito del desafío, dónde está resuelto y con qué evidencia.
+**Probado** = fijado por la suite offline (`npm test`). **En vivo** =
+ejercitado contra el portal en la corrida de demostración (`output/scraper.log`).
+
+| Requisito | Dónde | Evidencia |
+|---|---|---|
+| Navegar por todas las páginas del sitio | `crawl/discover.ts`: el portal no pagina (30 filas por consulta), así que se particiona el rango de `dataAutuacao` hasta que cada tramo cabe; `state.json` guarda los rangos completados | En vivo: 2.493 procesos sin duplicados. Probado: `listParser.test.ts` (tope de 30, banner de desborde), `dates.test.ts` (`splitRange`) |
+| Extraer toda la información de cada documento | `pje/detailParser.ts`: dados do processo, partes, movimentações (paginadas por slider), documentos | En vivo: 4 fichas, 520/520 movimentações. Probado: `detailParser.test.ts` sobre fixtures reales |
+| Descargar los PDF asociados | `pje/documents.ts`: ruta binaria (`download.seam`) y ruta del visor (`downloadPDF`); validación de content-type, `%PDF-` y tamaño; escritura `.part` + rename | En vivo: 7 PDF, muestra versionada en `output/pdfs/` |
+| Nombre descriptivo y carpeta organizada | `output/pdfs/<idProceso>/<idProceso>_<idDoc>_<fecha>_<título>.pdf` (`safeFileName`) | En vivo. Probado: `text.test.ts` |
+| Detectar el `429` | `http/client.ts` (`classify`): 429 / 5xx / 408 → `HttpRetryableError` con `Retry-After`; otros 4xx → `HttpFatalError` | Probado: `retry.test.ts` |
+| Reintentos con retroceso exponencial | `util/retry.ts` (`backoffMs`, `withRetry`): 2 s · 2ⁿ con jitter, tope 120 s, `Retry-After` manda | Probado: `retry.test.ts` (schedule, `Retry-After`, tope, agotamiento). En vivo: 5 intentos con esperas 2 s → 3 s → 8 s → 14 s sobre `errorUnexpected.seam` |
+| Continuar con el siguiente si el fallo persiste | `crawl/enrich.ts`: `try/catch` por ficha y por documento; el bucle no se rompe | En vivo: la ficha `0006051-07.1991.4.05.8200` falló 5 veces y la corrida siguió con las demás |
+| Registrar qué documentos fallaron para reintentarlos | `storage/store.ts` (`recordFailure`) → `output/failed.json` con fase, motivo, intentos y marca de tiempo; `npm run retry-failed` los reprocesa | En vivo: 1 entrada en `failed.json`. Probado: `store.test.ts` (un reintento exitoso limpia el error previo) |
+| TypeScript, sin Puppeteer / Playwright / Selenium | `tsconfig.json` en modo `strict`; dependencias de ejecución: `axios`, `cheerio` | `package.json` |
+| Código estructurado y documentado | Capas `http/`, `pje/`, `crawl/`, `storage/`, `util/`; cada fichero abre con el porqué; `docs/protocolo.md` | — |
+| Repositorio con fuente, `package.json`, `README.md` y `.gitignore` | Raíz | — |
+| Delays entre peticiones | `MIN_DELAY_MS` 700 + `JITTER_MS` 300 en cada petición; sesión reciclada cada `SESSION_MAX_REQUESTS` | En vivo |
+| Datos en formato estructurado | `output/processes/*.json`, `index.json`, `processes.csv`, `documents.csv` | En vivo |
+| Probar con un subconjunto | `DATE_FROM` / `DATE_TO`, `MAX_PROCESSES`, `MAX_DOCUMENTS`, `MAX_SEARCHES` | En vivo |
+| Logging del progreso | `util/logger.ts`: una línea por búsqueda, ficha, descarga y reintento; `output/scraper.log` | En vivo |
 
 ## Limitaciones conocidas
 
@@ -184,5 +221,7 @@ abre: `BR-TRF5-ca-<hash>`.
 
 La Consulta Pública es de acceso libre y sin autenticación; el organizador del
 desafío declara que ya posee esta información y que el scraper es únicamente una
-prueba técnica. Delays conservadores por defecto; `output/` está en
-`.gitignore` y no se versiona ningún dato recogido.
+prueba técnica. Delays conservadores por defecto. `output/` está en
+`.gitignore`; solo se versiona la muestra de 7 PDF de `output/pdfs/` como
+evidencia de la descarga de punta a punta (resoluciones publicadas por el propio
+tribunal para consulta pública). El resto de los datos recogidos no se sube.

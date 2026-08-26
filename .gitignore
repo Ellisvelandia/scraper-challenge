@@ -7,6 +7,8 @@ dist/
 # Scraper output: extracted data, PDFs, run state and logs
 output/*
 !output/.gitkeep
+# Versioned sample: the PDFs downloaded in the demo run (evidence of the end-to-end download)
+!output/pdfs/
 
 # Environment and local overrides
 .env
