@@ -1,0 +1,41 @@
+{
+  "name": "scraper-challenge",
+  "version": "1.0.0",
+  "description": "Scraper en TypeScript (HTTP puro, sin navegador) de la Consulta Pública del PJe TRF5 (pjett.trf5.jus.br): recorre todos los procesos particionando el espacio de búsqueda por fecha, extrae los metadatos de cada uno y descarga sus PDF con manejo de 429 y backoff exponencial.",
+  "main": "dist/index.js",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "discover": "ts-node src/index.ts discover",
+    "download": "ts-node src/index.ts download",
+    "all": "ts-node src/index.ts all",
+    "retry-failed": "ts-node src/index.ts retry-failed",
+    "status": "ts-node src/index.ts status",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc && node --test \"dist/__tests__/*.test.js\""
+  },
+  "keywords": [
+    "scraper",
+    "typescript",
+    "axios",
+    "cheerio",
+    "jsf",
+    "richfaces",
+    "pje",
+    "trf5"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.19.0",
+    "cheerio": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}

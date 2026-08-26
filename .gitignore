@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Scraper output: extracted data, PDFs, run state and logs
+output/
+!output/.gitkeep
+
+# Environment and local overrides
+.env
+.env.*
+
+# Editor and OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
