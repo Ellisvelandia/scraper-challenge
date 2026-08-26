@@ -75,7 +75,7 @@ export class Discoverer {
       }
       this.store.save();
     }
-    this.store.save();
+    this.store.save(true);
     this.store.exportCsv();
     return this.stats;
   }
@@ -136,14 +136,16 @@ export class Discoverer {
       return { kind: 'failed' };
     }
     this.stats.searches++;
-    if (page.message) {
-      // A validation/error message means the portal did NOT run this query:
+    if (page.message && page.rows.length === 0) {
+      // A message with zero rows means the portal did NOT run this query:
       // completing the range here would silently write the whole partition off.
+      // A message alongside rows is informational and the rows are kept.
       this.stats.failedRanges++;
       this.store.recordFailure(failureKey, 'search', `portal message: ${page.message}`);
       log.warn(`search ${label}: portal message "${page.message}" -> range NOT completed`);
       return { kind: 'failed' };
     }
+    if (page.message) log.warn(`search ${label}: portal message alongside ${page.rows.length} rows: "${page.message}"`);
     let fresh = 0;
     for (const row of page.rows) {
       if (this.storeRow(row, range)) fresh++;
@@ -204,6 +206,14 @@ export class Discoverer {
       firstSeenAt: now,
       updatedAt: now,
     };
+    // Re-listing an already-known process must not undo its enrichment: keep
+    // the detailFetched flag (else every overlapping split forces a full
+    // re-enrichment) and the range of the first sighting.
+    const existing = this.store.get(id);
+    if (existing) {
+      record.detailFetched = existing.detailFetched;
+      record.foundInRange = existing.foundInRange ?? range;
+    }
     return this.store.upsert(record);
   }
 }

@@ -96,6 +96,8 @@ export interface RetryOptions {
   maxAttempts?: number;
   /** Called before each retry (e.g. to reopen a session). */
   onRetry?: (err: unknown, attempt: number) => Promise<void> | void;
+  /** Extra veto on top of the taxonomy: return false to stop retrying this error. */
+  retryIf?: (err: unknown) => boolean;
 }
 
 /**
@@ -110,7 +112,7 @@ export async function withRetry<T>(fn: (attempt: number) => Promise<T>, opts: Re
       return await fn(attempt);
     } catch (err) {
       lastErr = err;
-      if (!isRetryable(err) || attempt === max) break;
+      if (!isRetryable(err) || (opts.retryIf && !opts.retryIf(err)) || attempt === max) break;
       const wait = backoffMs(attempt, err);
       const status = err instanceof HttpRetryableError ? ` (HTTP ${err.status})` : '';
       log.warn(`${opts.label}: attempt ${attempt}/${max} failed${status}: ${describeError(err)} -> waiting ${Math.round(wait / 1000)}s`);

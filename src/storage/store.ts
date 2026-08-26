@@ -75,6 +75,8 @@ export class Store {
   private state: CrawlState;
   private failed: Record<string, FailedItem>;
   private dirty = { index: false, state: false, failed: false };
+  private dirtyIndexCount = 0;
+  private lastIndexWriteAt = 0;
   private readonly processesDir: string;
   private readonly indexFile: string;
 
@@ -107,12 +109,24 @@ export class Store {
     return [...this.index.keys()];
   }
 
-  /** Full record, read from its shard file. */
+  /**
+   * Full record, read from its shard file. The shards are the source of truth:
+   * when the in-memory index does not know the id but the shard exists on disk
+   * (a stale index.json from an aborted run), the record is read anyway and the
+   * index heals itself, so a stale index can never cause a shard to be
+   * overwritten instead of merged.
+   */
   get(id: string): ProcessRecord | undefined {
-    if (!this.index.has(id)) return undefined;
     const file = this.shardFile(id);
+    if (!this.index.has(id) && !fs.existsSync(file)) return undefined;
     try {
-      return JSON.parse(fs.readFileSync(file, 'utf8')) as ProcessRecord;
+      const rec = JSON.parse(fs.readFileSync(file, 'utf8')) as ProcessRecord;
+      if (!this.index.has(id)) {
+        this.index.set(id, toIndexEntry(rec));
+        this.dirty.index = true;
+        this.dirtyIndexCount++;
+      }
+      return rec;
     } catch (err) {
       log.warn(`shard ${path.basename(file)} unreadable (${(err as Error).message})`);
       return undefined;
@@ -138,6 +152,7 @@ export class Store {
     writeJsonAtomic(this.shardFile(record.id), merged);
     this.index.set(record.id, toIndexEntry(merged));
     this.dirty.index = true;
+    this.dirtyIndexCount++;
     return !existing;
   }
 
@@ -149,6 +164,7 @@ export class Store {
     writeJsonAtomic(this.shardFile(processId), rec);
     this.index.set(processId, toIndexEntry(rec));
     this.dirty.index = true;
+    this.dirtyIndexCount++;
   }
 
   private shardFile(id: string): string {
@@ -220,11 +236,19 @@ export class Store {
 
   // ------------------------------------------------------------------ disk
 
-  /** Writes index/state/failed if they changed (shards are written on the spot). */
-  save(): void {
-    if (this.dirty.index) {
+  /**
+   * Writes state/failed if they changed (shards are written on the spot).
+   * index.json grows with the corpus (~40 MB at full size), so rewriting it on
+   * every save would reintroduce O(n²) I/O; since it is rebuildable from the
+   * shards, it is flushed at most every 60 s / 500 updates, and always when
+   * `force` is set (end of a phase, SIGINT).
+   */
+  save(force = false): void {
+    if (this.dirty.index && (force || this.dirtyIndexCount >= 500 || Date.now() - this.lastIndexWriteAt > 60_000)) {
       writeJsonAtomic(this.indexFile, [...this.index.values()]);
       this.dirty.index = false;
+      this.dirtyIndexCount = 0;
+      this.lastIndexWriteAt = Date.now();
     }
     if (this.dirty.state) {
       writeJsonAtomic(CONFIG.output.state, this.state);
@@ -238,7 +262,12 @@ export class Store {
 
   /**
    * Exports processes.csv and documents.csv (UTF-8 with BOM so Excel keeps the
-   * accents), streaming shard by shard so memory stays flat.
+   * accents). Fully synchronous on purpose: the export is the last act of a run
+   * and of the SIGINT handler, both of which end in `process.exit`, which would
+   * discard the buffers of an async stream. Writes go line by line through a
+   * file descriptor (memory stays flat) into `.tmp` files renamed at the end,
+   * and any I/O error propagates to the caller instead of killing the process
+   * from an unhandled 'error' event.
    */
   exportCsv(): void {
     const pCols = [
@@ -246,32 +275,36 @@ export class Store {
       'lastMovement', 'lastMovementDate', 'detailFetched', 'parties', 'movements', 'movementsTotal', 'documents', 'documentsDownloaded', 'ca', 'detailUrl',
     ];
     const dCols = ['id', 'processId', 'processNumber', 'idProcessoDocumento', 'idBin', 'date', 'title', 'type', 'download', 'status', 'file', 'bytes', 'error'];
-    const pOut = fs.createWriteStream(`${CONFIG.output.processesCsv}.tmp`);
-    const dOut = fs.createWriteStream(`${CONFIG.output.documentsCsv}.tmp`);
-    pOut.write('﻿' + pCols.join(',') + '\r\n');
-    dOut.write('﻿' + dCols.join(',') + '\r\n');
-    const ids = this.ids().sort();
-    for (const id of ids) {
-      const p = this.get(id);
-      if (!p) continue;
-      pOut.write(csvLine([
-        p.id, p.number ?? '', p.classAcronym ?? '', p.className ?? '', p.subject ?? p.details?.['Assunto'] ?? '', p.distributionDate ?? '',
-        p.activePoleSummary ?? '', p.passivePoleSummary ?? '', p.lastMovement ?? '', p.lastMovementDate ?? '', String(p.detailFetched),
-        String(p.parties?.length ?? ''), String(p.movements?.length ?? ''), p.movementsTotal !== undefined ? String(p.movementsTotal) : '',
-        String(p.documents?.length ?? ''), String(p.documents?.filter((d) => d.status === 'downloaded').length ?? ''),
-        p.ca, `${CONFIG.baseUrl}${CONFIG.paths.detail}?ca=${p.ca}`,
-      ]));
-      for (const d of p.documents ?? []) {
-        dOut.write(csvLine([
-          d.id, p.id, p.number ?? '', d.idProcessoDocumento, d.idBin ?? '', d.date ?? '', d.title, d.type ?? '',
-          d.download, d.status, d.file ?? '', d.bytes !== undefined ? String(d.bytes) : '', d.error ?? '',
+    const pTmp = `${CONFIG.output.processesCsv}.tmp`;
+    const dTmp = `${CONFIG.output.documentsCsv}.tmp`;
+    const pFd = fs.openSync(pTmp, 'w');
+    const dFd = fs.openSync(dTmp, 'w');
+    try {
+      fs.writeSync(pFd, '﻿' + pCols.join(',') + '\r\n');
+      fs.writeSync(dFd, '﻿' + dCols.join(',') + '\r\n');
+      for (const id of this.ids().sort()) {
+        const p = this.get(id);
+        if (!p) continue;
+        fs.writeSync(pFd, csvLine([
+          p.id, p.number ?? '', p.classAcronym ?? '', p.className ?? '', p.subject ?? p.details?.['Assunto'] ?? '', p.distributionDate ?? '',
+          p.activePoleSummary ?? '', p.passivePoleSummary ?? '', p.lastMovement ?? '', p.lastMovementDate ?? '', String(p.detailFetched),
+          String(p.parties?.length ?? ''), String(p.movements?.length ?? ''), p.movementsTotal !== undefined ? String(p.movementsTotal) : '',
+          String(p.documents?.length ?? ''), String(p.documents?.filter((d) => d.status === 'downloaded').length ?? ''),
+          p.ca, `${CONFIG.baseUrl}${CONFIG.paths.detail}?ca=${p.ca}`,
         ]));
+        for (const d of p.documents ?? []) {
+          fs.writeSync(dFd, csvLine([
+            d.id, p.id, p.number ?? '', d.idProcessoDocumento, d.idBin ?? '', d.date ?? '', d.title, d.type ?? '',
+            d.download, d.status, d.file ?? '', d.bytes !== undefined ? String(d.bytes) : '', d.error ?? '',
+          ]));
+        }
       }
+    } finally {
+      fs.closeSync(pFd);
+      fs.closeSync(dFd);
     }
-    pOut.end();
-    dOut.end();
-    pOut.on('close', () => fs.renameSync(`${CONFIG.output.processesCsv}.tmp`, CONFIG.output.processesCsv));
-    dOut.on('close', () => fs.renameSync(`${CONFIG.output.documentsCsv}.tmp`, CONFIG.output.documentsCsv));
+    fs.renameSync(pTmp, CONFIG.output.processesCsv);
+    fs.renameSync(dTmp, CONFIG.output.documentsCsv);
   }
 
   // ------------------------------------------------------------- start-up

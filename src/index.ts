@@ -35,7 +35,7 @@ async function main(argv: string[]): Promise<number> {
   const store = new Store();
   const stop = () => {
     log.warn('interrupted: saving progress');
-    store.save();
+    store.save(true);
     store.exportCsv();
     process.exit(130);
   };

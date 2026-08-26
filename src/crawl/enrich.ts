@@ -83,7 +83,7 @@ export class Enricher {
       await this.enrichOne(process, opts);
       this.store.save();
     }
-    this.store.save();
+    this.store.save(true);
     this.store.exportCsv();
     return this.stats;
   }
@@ -140,7 +140,7 @@ export class Enricher {
       this.stats.detailsFailed++;
       this.store.recordFailure(process.id, 'detail', `movements truncated: ${movements.length} of ${parsed.movementsTotal} collected`);
     }
-    const record = this.store.get(process.id)!;
+    const record = this.store.get(process.id) ?? updated;
     log.info(`detail ${process.id}: ${parsed.parties.length} parties, ${movements.length}/${parsed.movementsTotal} movements, ${documents.length} documents${complete ? '' : ' (INCOMPLETE, will retry)'}`);
 
     if (opts.skipDownloads) return;
@@ -184,7 +184,12 @@ export class Enricher {
     const $detail = cheerio.load(html);
     for (let page = 2; page <= pager.pages; page++) {
       try {
-        await withRetry(() => this.session.getMovementsPage($detail, pager, page, process.ca), { label: `movements ${process.id} p${page}`, maxAttempts: 3 });
+        await withRetry(() => this.session.getMovementsPage($detail, pager, page, process.ca), {
+          label: `movements ${process.id} p${page}`,
+          maxAttempts: 3,
+          // A dead view state cannot come back for this document: re-posting it is futile.
+          retryIf: (err) => !(err instanceof SessionExpiredError),
+        });
       } catch (err) {
         log.warn(`movements ${process.id} page ${page}/${pager.pages}: ${describeError(err)} (collected ${all.length} of ${total})`);
         return { movements: all, complete: false };
