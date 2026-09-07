@@ -60,6 +60,13 @@ export const CONFIG = {
     maxDelayMs: envInt('RETRY_MAX_MS', 120_000),
     /** Pause after the WAF block page before opening a new session. */
     wafCooldownMs: envInt('WAF_COOLDOWN_MS', 90_000),
+    /**
+     * Pause after the portal's errorUnexpected.seam redirect. Observed live
+     * (2026-08-26): it is deterministic per process (same 302 in a fresh session
+     * 15 min later, neighbours fine), so a long pause only delays the run; 5 s
+     * still covers a genuinely transient pool exhaustion.
+     */
+    errorPagePauseMs: envInt('ERROR_PAGE_PAUSE_MS', 5_000),
   },
 
   /** Per-run limits so a demo can stop early. 0 means no limit. */

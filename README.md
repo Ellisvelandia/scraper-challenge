@@ -65,6 +65,7 @@ En PowerShell las variables se fijan antes: `$env:MAX_DOCUMENTS='4'; npm run all
 | `MAX_ATTEMPTS` | 3 | Intentos por petición antes de anotar el fallo y seguir |
 | `RETRY_BASE_MS` / `RETRY_MAX_MS` | 2000 / 120000 | Base y techo del backoff exponencial |
 | `WAF_COOLDOWN_MS` | 90000 | Pausa tras la página de bloqueo del WAF |
+| `ERROR_PAGE_PAUSE_MS` | 5000 | Pausa tras el 302 a `errorUnexpected.seam` (error determinista por proceso en la corrida observada, no rate limiting) |
 | `PJE_BASE_URL` | `https://pjett.trf5.jus.br` | Otra instancia del mismo PJe |
 | `INCLUDE_RECEIPTS` | off | Descarga también los comprovantes (`reportReciboPDF`) |
 | `OUTPUT_DIR` | `output` | Carpeta de salida |
@@ -170,10 +171,16 @@ src/
 ├── crawl/
 │   ├── discover.ts       Fase 1: partición por fechas + medición del total
 │   └── enrich.ts         Fase 2: fichas completas + descargas
-├── storage/store.ts      Persistencia atómica: JSON, CSV, estado, fallos
+├── storage/
+│   ├── store.ts          La clase Store: estado en memoria y rutas de escritura
+│   ├── shards.ts         Directorio de shards: nombres, escaneo, reconciliación
+│   ├── indexEntry.ts     Proyección ligera por proceso (index.json)
+│   ├── merge.ts          Fusión pura de documentos y rangos de fechas
+│   ├── csv.ts            Exportación de processes.csv y documents.csv
+│   └── jsonFile.ts       Escritura atómica y lectura defensiva de JSON
 ├── util/                 retry/backoff, fechas, logger, texto e ids
 └── __tests__/            Suite offline con fixtures REALES capturados del portal
-                          (sesiones redactadas): parsers, A4J, fechas, store, retry
+                          (sesiones redactadas): parsers, A4J, fechas, merge, retry
 docs/protocolo.md         El protocolo del portal, petición a petición
 ```
 
@@ -200,7 +207,7 @@ ejercitado contra el portal en la corrida de demostración (`output/scraper.log`
 | Detectar el `429` | `http/client.ts` (`classify`): 429 / 5xx / 408 → `HttpRetryableError` con `Retry-After`; otros 4xx → `HttpFatalError` | Probado: `retry.test.ts` |
 | Reintentos con retroceso exponencial | `util/retry.ts` (`backoffMs`, `withRetry`): 2 s · 2ⁿ con jitter, tope 120 s, `Retry-After` manda | Probado: `retry.test.ts` (schedule, `Retry-After`, tope, agotamiento). En vivo: 5 intentos con esperas 2 s → 3 s → 8 s → 14 s sobre `errorUnexpected.seam` |
 | Continuar con el siguiente si el fallo persiste | `crawl/enrich.ts`: `try/catch` por ficha y por documento; el bucle no se rompe | En vivo: la ficha `0006051-07.1991.4.05.8200` falló 5 veces y la corrida siguió con las demás |
-| Registrar qué documentos fallaron para reintentarlos | `storage/store.ts` (`recordFailure`) → `output/failed.json` con fase, motivo, intentos y marca de tiempo; `npm run retry-failed` los reprocesa | En vivo: 1 entrada en `failed.json`. Probado: `store.test.ts` (un reintento exitoso limpia el error previo) |
+| Registrar qué documentos fallaron para reintentarlos | `storage/store.ts` (`recordFailure`) → `output/failed.json` con fase, motivo, intentos y marca de tiempo; `npm run retry-failed` los reprocesa | En vivo: 1 entrada en `failed.json`. Probado: `merge.test.ts` (un reintento exitoso limpia el error previo) |
 | TypeScript, sin Puppeteer / Playwright / Selenium | `tsconfig.json` en modo `strict`; dependencias de ejecución: `axios`, `cheerio` | `package.json` |
 | Código estructurado y documentado | Capas `http/`, `pje/`, `crawl/`, `storage/`, `util/`; cada fichero abre con el porqué; `docs/protocolo.md` | — |
 | Repositorio con fuente, `package.json`, `README.md` y `.gitignore` | Raíz | — |

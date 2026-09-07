@@ -8,68 +8,29 @@
  *
  *   output/processes/<id>.json   one file per process, written atomically the
  *                                moment the record changes (O(1) per update);
- *   output/index.json            a light index (one small entry per process)
- *                                used for dedupe, iteration and progress. It is
- *                                rebuilt from the shard files when missing or
- *                                unreadable, so it can never lose data;
+ *   output/index.json            a light per-process summary for dedupe,
+ *                                iteration and progress; rebuilt from the
+ *                                shards when missing, so it can't lose data;
  *   output/state.json            crawl state (completed ranges, saturated days);
  *   output/failed.json           what failed, why, and how many times.
  *
  * state.json and failed.json are NOT rebuildable, so an existing-but-unreadable
- * copy aborts the run after being moved aside — silently starting from scratch
- * would first lose the resume point and then overwrite the evidence.
+ * copy aborts the run after being moved aside (see readJsonOrAbort). This file
+ * owns the in-memory state and the write paths; the rest of the directory:
+ * jsonFile.ts (I/O), merge.ts (pure merging), csv.ts (export), shards.ts
+ * (shard layout, start-up reconciliation), indexEntry.ts (index projection).
  */
 import * as fs from 'fs';
 import * as path from 'path';
 import { CONFIG } from '../config';
 import { CrawlState, DateRange, DocumentRecord, FailedItem, ProcessRecord } from '../types';
+import { rangeContains } from '../util/dates';
 import { log } from '../util/logger';
-import { safeFileName } from '../util/text';
-import { renameSyncWithRetry } from '../util/fs';
-
-/** Small per-process summary kept in memory and in index.json. */
-export interface IndexEntry {
-  id: string;
-  number?: string;
-  ca: string;
-  className?: string;
-  detailFetched: boolean;
-  docsTotal: number;
-  docsDownloaded: number;
-  docsPending: number;
-  docsFailed: number;
-  docsUnavailable: number;
-  updatedAt: string;
-}
-
-function writeJsonAtomic(file: string, value: unknown): void {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const tmp = `${file}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(value, null, 2));
-  renameSyncWithRetry(tmp, file);
-}
-
-/**
- * Reads a JSON file that CANNOT be rebuilt. A missing file returns the
- * fallback; an unreadable one is moved aside and the run aborts.
- */
-function readJsonOrAbort<T>(file: string, fallback: T): T {
-  if (!fs.existsSync(file)) return fallback;
-  try {
-    return JSON.parse(fs.readFileSync(file, 'utf8')) as T;
-  } catch (err) {
-    const aside = `${file}.corrupt-${Date.now()}`;
-    try {
-      fs.renameSync(file, aside);
-    } catch {
-      /* keep the original if even the rename fails */
-    }
-    throw new Error(
-      `${path.basename(file)} exists but could not be read (${(err as Error).message}). ` +
-        `It was moved to ${aside}; inspect or delete it before running again.`,
-    );
-  }
-}
+import { exportCsv } from './csv';
+import { IndexEntry, toIndexEntry } from './indexEntry';
+import { readJsonOrAbort, writeJsonAtomic } from './jsonFile';
+import { mergeDocuments, mergeRanges, stripUndefined } from './merge';
+import { migrateLegacyMonolith, readShards, reconcileShards, shardFileName } from './shards';
 
 export class Store {
   private index = new Map<string, IndexEntry>();
@@ -88,15 +49,11 @@ export class Store {
     fs.mkdirSync(this.processesDir, { recursive: true });
     this.state = readJsonOrAbort<CrawlState>(CONFIG.output.state, { completedRanges: [], saturatedDays: [], updatedAt: new Date().toISOString() });
     this.failed = readJsonOrAbort<Record<string, FailedItem>>(CONFIG.output.failed, {});
-    this.migrateLegacyMonolith();
+    migrateLegacyMonolith(CONFIG.output.processes, this.processesDir);
     this.loadIndex();
   }
 
   // ------------------------------------------------------------ processes
-
-  has(id: string): boolean {
-    return this.index.has(id);
-  }
 
   count(): number {
     return this.index.size;
@@ -106,27 +63,18 @@ export class Store {
     return [...this.index.values()];
   }
 
-  ids(): string[] {
-    return [...this.index.keys()];
-  }
-
   /**
-   * Full record, read from its shard file. The shards are the source of truth:
-   * when the in-memory index does not know the id but the shard exists on disk
-   * (a stale index.json from an aborted run), the record is read anyway and the
-   * index heals itself, so a stale index can never cause a shard to be
-   * overwritten instead of merged.
+   * Full record, read from its shard file (the source of truth). When the
+   * index does not know the id but the shard exists (stale index.json from an
+   * aborted run), the record is read anyway and the index heals itself, so a
+   * stale index can never cause a shard to be overwritten instead of merged.
    */
   get(id: string): ProcessRecord | undefined {
     const file = this.shardFile(id);
     if (!this.index.has(id) && !fs.existsSync(file)) return undefined;
     try {
       const rec = JSON.parse(fs.readFileSync(file, 'utf8')) as ProcessRecord;
-      if (!this.index.has(id)) {
-        this.index.set(id, toIndexEntry(rec));
-        this.dirty.index = true;
-        this.dirtyIndexCount++;
-      }
+      if (!this.index.has(id)) this.setIndexEntry(rec);
       return rec;
     } catch (err) {
       log.warn(`shard ${path.basename(file)} unreadable (${(err as Error).message})`);
@@ -151,9 +99,7 @@ export class Store {
       merged = { ...record, firstSeenAt: record.firstSeenAt || now, updatedAt: now };
     }
     writeJsonAtomic(this.shardFile(record.id), merged);
-    this.index.set(record.id, toIndexEntry(merged));
-    this.dirty.index = true;
-    this.dirtyIndexCount++;
+    this.setIndexEntry(merged);
     return !existing;
   }
 
@@ -163,13 +109,17 @@ export class Store {
     rec.documents = mergeDocuments(rec.documents, [doc]);
     rec.updatedAt = new Date().toISOString();
     writeJsonAtomic(this.shardFile(processId), rec);
-    this.index.set(processId, toIndexEntry(rec));
-    this.dirty.index = true;
-    this.dirtyIndexCount++;
+    this.setIndexEntry(rec);
   }
 
   private shardFile(id: string): string {
-    return path.join(this.processesDir, `${safeFileName(id, 120)}.json`);
+    return path.join(this.processesDir, shardFileName(id));
+  }
+
+  private setIndexEntry(rec: ProcessRecord): void {
+    this.index.set(rec.id, toIndexEntry(rec));
+    this.dirty.index = true;
+    this.dirtyIndexCount++;
   }
 
   // ----------------------------------------------------------------- state
@@ -179,15 +129,14 @@ export class Store {
   }
 
   isRangeCompleted(range: DateRange): boolean {
-    return this.state.completedRanges.some((r) => r.from <= range.from && range.to <= r.to);
+    return this.state.completedRanges.some((r) => rangeContains(r, range));
   }
 
   markRangeCompleted(range: DateRange): void {
     if (this.isRangeCompleted(range)) return;
     this.state.completedRanges.push(range);
     this.state.completedRanges = mergeRanges(this.state.completedRanges);
-    this.state.updatedAt = new Date().toISOString();
-    this.dirty.state = true;
+    this.touchState();
   }
 
   markSaturatedDay(day: string, classSplitDone: boolean, note?: string): void {
@@ -198,14 +147,18 @@ export class Store {
     } else {
       this.state.saturatedDays.push({ day, classSplitDone, note });
     }
-    this.state.updatedAt = new Date().toISOString();
-    this.dirty.state = true;
+    this.touchState();
   }
 
   setMeasuredTotal(total: number): void {
     this.state.measuredTotal = total;
     this.state.measuredAt = new Date().toISOString();
     this.state.updatedAt = this.state.measuredAt;
+    this.dirty.state = true;
+  }
+
+  private touchState(): void {
+    this.state.updatedAt = new Date().toISOString();
     this.dirty.state = true;
   }
 
@@ -239,10 +192,9 @@ export class Store {
 
   /**
    * Writes state/failed if they changed (shards are written on the spot).
-   * index.json grows with the corpus (~40 MB at full size), so rewriting it on
-   * every save would reintroduce O(n²) I/O; since it is rebuildable from the
-   * shards, it is flushed at most every 60 s / 500 updates, and always when
-   * `force` is set (end of a phase, SIGINT).
+   * index.json grows with the corpus (~40 MB at full size), so it is only
+   * flushed every 60 s / 500 updates — rewriting it on every save would
+   * reintroduce O(n²) I/O — and always on `force` (end of a phase, SIGINT).
    */
   save(force = false): void {
     if (this.dirty.index && (force || this.dirtyIndexCount >= 500 || Date.now() - this.lastIndexWriteAt > 60_000)) {
@@ -261,56 +213,20 @@ export class Store {
     }
   }
 
-  /**
-   * Exports processes.csv and documents.csv (UTF-8 with BOM so Excel keeps the
-   * accents). Fully synchronous on purpose: the export is the last act of a run
-   * and of the SIGINT handler, both of which end in `process.exit`, which would
-   * discard the buffers of an async stream. Writes go line by line through a
-   * file descriptor (memory stays flat) into `.tmp` files renamed at the end,
-   * and any I/O error propagates to the caller instead of killing the process
-   * from an unhandled 'error' event.
-   */
+  /** Exports processes.csv and documents.csv (see csv.ts), one shard in memory at a time, in id order. */
   exportCsv(): void {
-    const pCols = [
-      'id', 'number', 'classAcronym', 'className', 'subject', 'distributionDate', 'activePoleSummary', 'passivePoleSummary',
-      'lastMovement', 'lastMovementDate', 'detailFetched', 'parties', 'movements', 'movementsTotal', 'documents', 'documentsDownloaded', 'ca', 'detailUrl',
-    ];
-    const dCols = ['id', 'processId', 'processNumber', 'idProcessoDocumento', 'idBin', 'date', 'title', 'type', 'download', 'status', 'file', 'bytes', 'error'];
-    const pTmp = `${CONFIG.output.processesCsv}.tmp`;
-    const dTmp = `${CONFIG.output.documentsCsv}.tmp`;
-    const pFd = fs.openSync(pTmp, 'w');
-    const dFd = fs.openSync(dTmp, 'w');
-    try {
-      fs.writeSync(pFd, '﻿' + pCols.join(',') + '\r\n');
-      fs.writeSync(dFd, '﻿' + dCols.join(',') + '\r\n');
-      for (const id of this.ids().sort()) {
-        const p = this.get(id);
-        if (!p) continue;
-        fs.writeSync(pFd, csvLine([
-          p.id, p.number ?? '', p.classAcronym ?? '', p.className ?? '', p.subject ?? p.details?.['Assunto'] ?? '', p.distributionDate ?? '',
-          p.activePoleSummary ?? '', p.passivePoleSummary ?? '', p.lastMovement ?? '', p.lastMovementDate ?? '', String(p.detailFetched),
-          String(p.parties?.length ?? ''), String(p.movements?.length ?? ''), p.movementsTotal !== undefined ? String(p.movementsTotal) : '',
-          String(p.documents?.length ?? ''), String(p.documents?.filter((d) => d.status === 'downloaded').length ?? ''),
-          p.ca, `${CONFIG.baseUrl}${CONFIG.paths.detail}?ca=${p.ca}`,
-        ]));
-        for (const d of p.documents ?? []) {
-          fs.writeSync(dFd, csvLine([
-            d.id, p.id, p.number ?? '', d.idProcessoDocumento, d.idBin ?? '', d.date ?? '', d.title, d.type ?? '',
-            d.download, d.status, d.file ?? '', d.bytes !== undefined ? String(d.bytes) : '', d.error ?? '',
-          ]));
-        }
+    const store = this;
+    exportCsv((function* () {
+      for (const id of [...store.index.keys()].sort()) {
+        const rec = store.get(id);
+        if (rec) yield rec;
       }
-    } finally {
-      fs.closeSync(pFd);
-      fs.closeSync(dFd);
-    }
-    renameSyncWithRetry(pTmp, CONFIG.output.processesCsv);
-    renameSyncWithRetry(dTmp, CONFIG.output.documentsCsv);
+    })());
   }
 
   // ------------------------------------------------------------- start-up
 
-  /** Loads index.json, or rebuilds it from the shard files (source of truth). */
+  /** Loads index.json, or rebuilds it from the shard files (source of truth), then reconciles (see shards.ts). */
   private loadIndex(): void {
     let entries: IndexEntry[] | undefined;
     if (fs.existsSync(this.indexFile)) {
@@ -321,140 +237,14 @@ export class Store {
       }
     }
     if (!entries) {
-      entries = [];
-      for (const file of fs.readdirSync(this.processesDir)) {
-        if (!file.endsWith('.json')) continue;
-        try {
-          const rec = JSON.parse(fs.readFileSync(path.join(this.processesDir, file), 'utf8')) as ProcessRecord;
-          entries.push(toIndexEntry(rec));
-        } catch (err) {
-          log.warn(`shard ${file} unreadable while rebuilding the index: ${(err as Error).message}`);
-        }
-      }
+      entries = [...readShards(this.processesDir, 'rebuilding the index')].map((s) => s.entry);
       if (entries.length > 0) this.dirty.index = true;
     }
     for (const e of entries) this.index.set(e.id, e);
-    this.reconcileShards();
-  }
-
-  /**
-   * Shards are written the moment a record changes; index.json only every
-   * 60 s / 500 updates. After a hard kill (no SIGINT: taskkill, power loss)
-   * the index can lag the shards, and an entry missing from it is invisible to
-   * phase 2, the CSV export and `status`. So the shard directory is the
-   * authority at start-up: whatever it holds that the index lacks is added.
-   */
-  private reconcileShards(): void {
-    const known = new Set([...this.index.keys()].map((id) => `${safeFileName(id, 120)}.json`));
-    let added = 0;
-    for (const file of fs.readdirSync(this.processesDir)) {
-      if (!file.endsWith('.json') || known.has(file)) continue;
-      try {
-        const rec = JSON.parse(fs.readFileSync(path.join(this.processesDir, file), 'utf8')) as ProcessRecord;
-        this.index.set(rec.id, toIndexEntry(rec));
-        added++;
-      } catch (err) {
-        log.warn(`shard ${file} unreadable while reconciling the index: ${(err as Error).message}`);
-      }
-    }
+    const added = reconcileShards(this.processesDir, this.index);
     if (added > 0) {
       this.dirty.index = true;
       this.dirtyIndexCount += added;
-      log.info(`index.json was behind the shard files: ${added} process(es) recovered`);
     }
   }
-
-  /** One-time migration from the old single-file layout. */
-  private migrateLegacyMonolith(): void {
-    const legacy = CONFIG.output.processes;
-    if (!fs.existsSync(legacy)) return;
-    try {
-      const map = JSON.parse(fs.readFileSync(legacy, 'utf8')) as Record<string, ProcessRecord>;
-      let n = 0;
-      for (const rec of Object.values(map)) {
-        const file = this.shardFile(rec.id);
-        if (!fs.existsSync(file)) {
-          writeJsonAtomic(file, rec);
-          n++;
-        }
-      }
-      fs.renameSync(legacy, `${legacy}.migrated`);
-      log.info(`migrated ${n} record(s) from processes.json to output/processes/`);
-    } catch (err) {
-      throw new Error(`legacy processes.json exists but could not be migrated: ${(err as Error).message}`);
-    }
-  }
-}
-
-function toIndexEntry(p: ProcessRecord): IndexEntry {
-  const docs = p.documents ?? [];
-  const by = (s: DocumentRecord['status']) => docs.filter((d) => d.status === s).length;
-  return {
-    id: p.id,
-    number: p.number,
-    ca: p.ca,
-    className: p.className,
-    detailFetched: p.detailFetched,
-    docsTotal: docs.length,
-    docsDownloaded: by('downloaded'),
-    docsPending: by('pending'),
-    docsFailed: by('failed'),
-    docsUnavailable: by('unavailable'),
-    updatedAt: p.updatedAt,
-  };
-}
-
-function stripUndefined<T extends object>(obj: T): Partial<T> {
-  const out: Partial<T> = {};
-  for (const [k, v] of Object.entries(obj)) if (v !== undefined) (out as Record<string, unknown>)[k] = v;
-  return out;
-}
-
-/** Merges document lists by id; incoming defined fields win, but a completed download is never downgraded and a success clears old errors. */
-export function mergeDocuments(current: DocumentRecord[] | undefined, incoming: DocumentRecord[] | undefined): DocumentRecord[] | undefined {
-  if (!incoming) return current;
-  if (!current) return incoming;
-  const byId = new Map(current.map((d) => [d.id, d]));
-  for (const d of incoming) {
-    const prev = byId.get(d.id);
-    if (!prev) {
-      byId.set(d.id, d);
-      continue;
-    }
-    const merged: DocumentRecord = { ...prev, ...stripUndefined(d) };
-    if (prev.status === 'downloaded' && d.status !== 'downloaded') {
-      merged.status = prev.status;
-      merged.file = prev.file;
-      merged.bytes = prev.bytes;
-    }
-    if (merged.status === 'downloaded') merged.error = undefined;
-    byId.set(d.id, merged);
-  }
-  return [...byId.values()];
-}
-
-/** Sorts and coalesces adjacent/overlapping ISO day ranges. */
-export function mergeRanges(ranges: DateRange[]): DateRange[] {
-  const sorted = [...ranges].sort((a, b) => a.from.localeCompare(b.from));
-  const out: DateRange[] = [];
-  for (const r of sorted) {
-    const last = out[out.length - 1];
-    if (last && r.from <= nextDay(last.to)) {
-      if (r.to > last.to) last.to = r.to;
-    } else {
-      out.push({ ...r });
-    }
-  }
-  return out;
-}
-
-function nextDay(iso: string): string {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
-function csvLine(values: string[]): string {
-  const esc = (v: string) => (/[",\r\n;]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-  return values.map(esc).join(',') + '\r\n';
 }

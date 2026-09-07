@@ -102,7 +102,7 @@ export class DocumentDownloader {
       if (!location) throw new UnexpectedStructureError('binary download redirected without Location');
       if (/errorUnexpected\.seam/i.test(location)) {
         // The portal's "pool exhausted" page: the session is fine, the server needs a pause (same as getDetail).
-        throw new HttpRetryableError(503, 20_000, 'portal error page (errorUnexpected) on the binary download');
+        throw new HttpRetryableError(503, CONFIG.retry.errorPagePauseMs, 'portal error page (errorUnexpected) on the binary download');
       }
       if (/ConsultaPublica\/listView\.seam/.test(location) && !/download\.seam/.test(location)) {
         throw new SessionExpiredError('binary download redirected to the landing page');
@@ -117,7 +117,7 @@ export class DocumentDownloader {
     const page = await this.http.get(url, { headers: { Referer: CONFIG.baseUrl + detailUrl } });
     if (page.status === 302) {
       if (/errorUnexpected\.seam/i.test(page.headers['location'] ?? '')) {
-        throw new HttpRetryableError(503, 20_000, 'portal error page (errorUnexpected) on the document viewer');
+        throw new HttpRetryableError(503, CONFIG.retry.errorPagePauseMs, 'portal error page (errorUnexpected) on the document viewer');
       }
       throw new SessionExpiredError('document viewer redirected: the hash is not valid for this session');
     }

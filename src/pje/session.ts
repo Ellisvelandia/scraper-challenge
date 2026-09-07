@@ -82,7 +82,7 @@ export class PjeSession {
     const res = await this.http.get(CONFIG.paths.list);
     if (res.status === 302) {
       const location = res.headers['location'] ?? '?';
-      const pause = /errorUnexpected\.seam/i.test(location) ? 20_000 : undefined;
+      const pause = /errorUnexpected\.seam/i.test(location) ? CONFIG.retry.errorPagePauseMs : undefined;
       throw new HttpRetryableError(503, pause, `landing page redirected to ${location}`);
     }
     if (res.status !== 200) throw new UnexpectedStructureError(`landing page returned HTTP ${res.status}`);
@@ -148,7 +148,7 @@ export class PjeSession {
       // error" page: the session is fine, the server needs a breather. Reopening
       // the session for it wastes ~2 requests per retry against a loaded server.
       if (/errorUnexpected\.seam/i.test(location)) {
-        throw new HttpRetryableError(503, 20_000, `portal error page (errorUnexpected) for detail ?ca=${ca.slice(0, 12)}…`);
+        throw new HttpRetryableError(503, CONFIG.retry.errorPagePauseMs, `portal error page (errorUnexpected) for detail ?ca=${ca.slice(0, 12)}…`);
       }
       throw new SessionExpiredError(`detail page redirected to ${location}`);
     }

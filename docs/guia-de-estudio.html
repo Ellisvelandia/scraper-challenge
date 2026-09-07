@@ -1,0 +1,2253 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Guía de estudio — Scraper PJe TRF5</title>
+<style>
+  @page { size: A4; margin: 15mm 13mm 15mm 13mm; }
+  :root{
+    --ink:#12161c; --ink2:#39424f; --dim:#6b7686; --line:#dde3ea;
+    --acc:#0b5fff; --acc2:#0a3d91; --warn:#a15c00; --bad:#b3261e; --ok:#0f7b3d;
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); font-size:10.2pt; line-height:1.5; margin:0;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  h1,h2,h3,h4{line-height:1.22; margin:0 0 .35em}
+  h1{font-size:23pt; letter-spacing:-.5px}
+  h2{font-size:15pt; margin:0 0 .5em; padding-bottom:6px; border-bottom:2.5px solid var(--ink);}
+  h3{font-size:11.6pt; margin-top:1.4em; color:var(--acc2)}
+  h4{font-size:10.4pt; margin-top:1em; color:var(--ink2)}
+  p{margin:.5em 0}
+  ul,ol{margin:.45em 0 .45em 1.1em; padding:0}
+  li{margin:.22em 0}
+  code{font-family:"Cascadia Mono",Consolas,"Courier New",monospace; font-size:.90em;
+       background:#f2f5f9; border:1px solid var(--line); border-radius:3px; padding:0 3px}
+  a{color:var(--acc); text-decoration:none}
+  .sheet{page-break-after:always; padding:0 0 3mm}
+  .sheet:last-child{page-break-after:auto}
+  .kicker{font-size:8pt; letter-spacing:2.2px; text-transform:uppercase; color:var(--dim); font-weight:700}
+  .lede{font-size:10.8pt; color:var(--ink2); max-width:62em}
+  .rule{height:1px;background:var(--line);margin:14px 0}
+
+  .cover{padding-top:16mm}
+  .cover h1{font-size:33pt; margin-bottom:.15em}
+  .cover .sub{font-size:12.5pt; color:var(--ink2); margin-bottom:22px}
+  .metrics{display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:20px 0}
+  .metric{border:1px solid var(--line); border-top:3px solid var(--acc); border-radius:5px; padding:8px 10px}
+  .metric b{display:block; font-size:17pt; letter-spacing:-.5px}
+  .metric span{font-size:7.6pt; color:var(--dim); text-transform:uppercase; letter-spacing:.6px}
+
+  .term{background:#0d1117; border-radius:7px; overflow:hidden; margin:11px 0 4px; page-break-inside:avoid}
+  .term.big{page-break-inside:auto}
+  .term .bar{background:#1b222c; padding:5px 10px; display:flex; align-items:center; gap:6px}
+  .term .bar i{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .term .bar .r{background:#ff5f57}.term .bar .y{background:#febc2e}.term .bar .g{background:#28c840}
+  .term .bar span{color:#8d99a8; font-size:7.6pt; margin-left:8px;
+        font-family:"Cascadia Mono",Consolas,monospace; letter-spacing:.3px}
+  .term pre{margin:0; padding:10px 12px; color:#c9d4e2; white-space:pre-wrap; word-break:break-word;
+        font-family:"Cascadia Mono",Consolas,"Courier New",monospace; font-size:7.3pt; line-height:1.55}
+  .t-dim{color:#5c6773}.t-ok{color:#3fb950}.t-info{color:#58a6ff}.t-warn{color:#e3b341}
+  .t-err{color:#ff7b72}.t-str{color:#a5d6ff}.t-key{color:#d2a8ff}.t-cmd{color:#e6edf3;font-weight:700}
+  .cap{font-size:8pt; color:var(--dim); margin:0 0 13px 2px}
+  .cap b{color:var(--ink2)}
+
+  pre.code{background:#f8fafc; border:1px solid var(--line); border-left:3px solid var(--acc);
+        border-radius:4px; padding:9px 11px; margin:9px 0; overflow:auto;
+        font-family:"Cascadia Mono",Consolas,monospace; font-size:7.7pt; line-height:1.5;
+        white-space:pre-wrap; page-break-inside:avoid}
+  pre.code .c{color:#6b7686; font-style:italic}
+  pre.code .k{color:#a626a4}
+  pre.code .s{color:#0a7d33}
+  pre.code .n{color:#b3261e}
+  .file{font-family:"Cascadia Mono",Consolas,monospace; font-size:8.2pt; color:var(--acc2); font-weight:700}
+
+  table{border-collapse:collapse; width:100%; margin:10px 0; font-size:8.5pt; page-break-inside:avoid}
+  th{background:#f2f5f9; text-align:left; padding:6px 8px; border:1px solid var(--line); font-size:7.9pt;
+     text-transform:uppercase; letter-spacing:.4px; color:var(--ink2)}
+  td{padding:5px 8px; border:1px solid var(--line); vertical-align:top}
+  td code{font-size:.92em}
+  tbody tr:nth-child(even){background:#fafcfe}
+
+  .box{border:1px solid var(--line); border-left:4px solid var(--acc); background:#f7faff;
+       border-radius:4px; padding:9px 12px; margin:11px 0; page-break-inside:avoid}
+  .box.warn{border-left-color:#e0a800; background:#fffdf5}
+  .box.bad{border-left-color:var(--bad); background:#fff7f6}
+  .box.ok{border-left-color:var(--ok); background:#f5fdf8}
+  .box .lbl{font-size:7.5pt; text-transform:uppercase; letter-spacing:1.1px; font-weight:700; color:var(--dim); display:block; margin-bottom:3px}
+
+  .q{border:1px solid var(--line); border-radius:6px; margin:0 0 12px; page-break-inside:avoid; overflow:hidden}
+  .q > .head{background:#12161c; color:#fff; padding:7px 11px; font-size:10pt; font-weight:700}
+  .q > .head .num{display:inline-block; background:#0b5fff; border-radius:3px; padding:0 6px; margin-right:8px; font-size:8.4pt}
+  .q > .body{padding:9px 12px}
+  .q .short{background:#f2f5f9; border-radius:4px; padding:7px 10px; margin:0 0 8px; font-size:9.3pt}
+  .q .short b{color:var(--acc2)}
+
+  .flow{font-family:"Cascadia Mono",Consolas,monospace; font-size:7.5pt; line-height:1.5;
+        background:#f8fafc; border:1px solid var(--line); border-radius:5px; padding:11px 13px; white-space:pre; overflow:auto}
+  .toc{font-size:9.5pt}
+  .toc div{display:flex; gap:8px; padding:3px 0; border-bottom:1px dotted var(--line)}
+  .toc div b{width:2.2em; color:var(--acc)}
+  .tag{display:inline-block; font-size:7.2pt; letter-spacing:.5px; text-transform:uppercase; font-weight:700;
+       padding:1px 6px; border-radius:3px; background:#eef2f8; color:var(--ink2); margin-right:5px}
+  .tag.live{background:#e7f6ec;color:var(--ok)} .tag.test{background:#eaf1ff;color:var(--acc2)}
+
+  /* ---------- navegación e interacción (solo CSS, sin JS) ---------- */
+  .toc a.row{display:flex; gap:8px; padding:3px 0; border-bottom:1px dotted var(--line);
+       color:var(--ink); text-decoration:none}
+  .toc a.row b{width:2.2em; color:var(--acc)}
+  .toc a.row:hover{background:#f2f5f9}
+  .toc a.row span{flex:1}
+  .toc a.row.new span::after{content:'NUEVO'; font-size:6.8pt; letter-spacing:.8px; font-weight:700;
+       color:var(--ok); background:#e7f6ec; border-radius:3px; padding:1px 5px; margin-left:7px}
+
+  details.qa{border:1px solid var(--line); border-radius:6px; margin:0 0 11px; overflow:hidden;
+       background:#fff; page-break-inside:avoid}
+  details.qa > summary{list-style:none; cursor:pointer; background:#12161c; color:#fff;
+       padding:7px 11px; font-size:10pt; font-weight:700; display:flex; gap:8px; align-items:baseline}
+  details.qa > summary::-webkit-details-marker{display:none}
+  details.qa > summary::marker{content:''}
+  details.qa > summary .num{background:var(--acc); border-radius:3px; padding:0 6px; font-size:8.4pt; flex:none}
+  details.qa > summary .txt{flex:1}
+  details.qa > summary .hint{font-weight:400; font-size:7.4pt; color:#8d99a8; letter-spacing:.7px;
+       text-transform:uppercase; flex:none}
+  details.qa:not([open]) > summary .hint::after{content:'▸ abrir'}
+  details.qa[open] > summary .hint::after{content:'▾ cerrar'}
+  details.qa > .body{padding:9px 12px}
+  details.qa > .body > h4:first-child{margin-top:.3em}
+  details.qa .short{background:#f2f5f9; border-radius:4px; padding:7px 10px; margin:0 0 8px; font-size:9.3pt}
+  details.qa .short b{color:var(--acc2)}
+
+  .steps{display:grid; grid-template-columns:repeat(2,1fr); gap:8px; margin:11px 0}
+  .steps.three{grid-template-columns:repeat(3,1fr)}
+  .step{border:1px solid var(--line); border-top:3px solid var(--acc); border-radius:5px;
+       padding:8px 10px; background:#fbfdff; page-break-inside:avoid}
+  .step .n{display:inline-block; width:16px; height:16px; line-height:16px; text-align:center;
+       background:var(--acc); color:#fff; border-radius:50%; font-size:7.4pt; font-weight:700; margin-right:6px}
+  .step b{font-size:9.3pt}
+  .step p{margin:.3em 0 0; font-size:8.5pt; color:var(--ink2)}
+  .step code{font-size:.86em}
+
+  .shot{border:1px solid var(--line); border-radius:6px; padding:6px; background:#eef2f7;
+       margin:11px 0 4px; page-break-inside:avoid}
+  .shot img{display:block; width:100%; border:1px solid #c3ccd8; border-radius:3px; background:#fff}
+  .shot.half{max-width:58%; margin-left:auto; margin-right:auto}
+  .shot.strip{padding:5px}
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:12px; align-items:start}
+  .xref{font-size:8.2pt; color:var(--dim); margin:.6em 0 0; border-top:1px dotted var(--line); padding-top:5px}
+  .xref b{color:var(--ink2)}
+
+  @media print{
+    details.qa{page-break-inside:auto}
+    details.qa > summary .hint{display:none}
+    details.qa::details-content{content-visibility:visible !important; block-size:auto !important; opacity:1 !important}
+    details.qa:not([open]) > *:not(summary){display:block !important}
+    .toc a.row{color:var(--ink)}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================ PORTADA ============================ -->
+<section class="sheet cover">
+  <div class="kicker">Guía de estudio · preparación de entrevista técnica</div>
+  <h1>Scraper de la Consulta Pública<br>del PJe TRF5</h1>
+  <div class="sub">Cómo funciona el código, qué hubo que descubrir del portal<br>y cómo defender cada decisión en la entrevista final.</div>
+
+  <div class="metrics">
+    <div class="metric"><b>106.763</b><span>procesos en el corpus</span></div>
+    <div class="metric"><b>3.432</b><span>líneas de TypeScript</span></div>
+    <div class="metric"><b>56</b><span>tests, 8 suites, offline</span></div>
+    <div class="metric"><b>0</b><span>navegadores usados</span></div>
+  </div>
+
+  <p class="lede">El proyecto recorre <b>todos</b> los procesos de <code>pjett.trf5.jus.br</code>, extrae los
+  metadatos completos de cada uno y descarga los PDF de sus documentos. Solo <code>axios</code> +
+  <code>cheerio</code>: sin Puppeteer, sin Playwright, sin Selenium. El portal es JSF 1.2 + RichFaces
+  sobre JBoss Seam, no navega por URL y no tiene paginación, así que casi todo el diseño sale de
+  entender su protocolo antes de escribir una línea de scraping.</p>
+
+  <div class="box">
+    <span class="lbl">Cómo usar esta guía</span>
+    Las secciones 1–8 son el recorrido del código: léelas con el repositorio abierto al lado.
+    La sección 9 reúne las capturas de terminal de la corrida real. La sección 10 es el banco de
+    preguntas: <b>si solo tienes una hora, estudia la 10 y vuelve a las demás para sustentar cada
+    respuesta</b>. La sección 11 es la chuleta de cifras y comandos para repasar cinco minutos antes.
+    La <a href="#s12"><b>sección 12</b></a> responde las doce preguntas concretas que salieron al
+    preparar esta guía, cada una con su fragmento de código real: <b>ábrela como examen</b> —
+    las respuestas vienen plegadas, intenta contestar antes de desplegarlas. Al imprimir salen abiertas.
+    El índice de arriba es clicable.
+  </div>
+
+  <div class="box ok">
+    <span class="lbl">Estado en el momento de escribir la guía · 2026-08-26 06:13 UTC</span>
+    Corrida completa en curso: <b>10.062 procesos</b> descubiertos de 106.763,
+    <b>123 fichas</b> enriquecidas, <b>1.101 documentos</b> catalogados,
+    rango <code>1985-01-01 .. 2020-06-11</code> cerrado, 1 día saturado, 5 fallos anotados para reintento.
+    Todas las capturas de esta guía son salida verbatim de esa corrida o de comandos ejecutados sobre ella.
+  </div>
+
+  <div class="rule"></div>
+  <div class="toc">
+    <a class="row" href="#s1"><b>1</b><span>El mapa de 30 segundos</span></a>
+    <a class="row" href="#s2"><b>2</b><span>Estructura de carpetas: qué hace cada fichero</span></a>
+    <a class="row" href="#s3"><b>3</b><span>El portal por dentro: JSF, RichFaces y el botón señuelo</span></a>
+    <a class="row" href="#s4"><b>4</b><span>Fase 1 · descubrimiento: particionar en vez de paginar</span></a>
+    <a class="row" href="#s5"><b>5</b><span>Fase 2 · enriquecimiento: ficha, partes y movimentações</span></a>
+    <a class="row" href="#s6"><b>6</b><span>Descarga y validación de los PDF</span></a>
+    <a class="row" href="#s7"><b>7</b><span>Errores, reintentos y backoff</span></a>
+    <a class="row" href="#s8"><b>8</b><span>Persistencia y reanudación</span></a>
+    <a class="row" href="#s9"><b>9</b><span>Capturas de terminal de la corrida real</span></a>
+    <a class="row" href="#s10"><b>10</b><span>Banco de preguntas de entrevista con respuestas</span></a>
+    <a class="row" href="#s11"><b>11</b><span>Chuleta final</span></a>
+    <a class="row new" href="#s12"><b>12</b><span>Las doce preguntas de la conversación</span></a>
+  </div>
+</section>
+
+<!-- ============================ 1 ============================ -->
+<section class="sheet" id="s1">
+  <h2>1 · El mapa de 30 segundos</h2>
+  <p class="lede">Si te piden «explícame tu scraper» y tienes un minuto, esto es lo que dices.</p>
+
+  <div class="flow">┌─────────────── FASE 1 · discover ───────────────┐  ┌──────────── FASE 2 · download ────────────┐
+│                                                 │  │                                           │
+│  ventana [1985-01-01 .. hoy]                    │  │  para cada proceso descubierto:           │
+│        │                                        │  │        │                                  │
+│        ├─ buscar por rango de dataAutuacao      │  │        ├─ GET ficha ?ca=&lt;hash 48 hex&gt;     │
+│        │     ≤30 filas → guardar, rango cerrado │  │        ├─ parsear dados + partes          │
+│        │     =30 filas → PARTIR EN DOS Y BAJAR  │  │        ├─ paginar movimentações (15/pág)  │
+│        │           año → mes → semana → día     │  │        ├─ listar documentos               │
+│        │                                        │  │        └─ por documento: descargar PDF    │
+│        └─ un día que sigue saturado             │  │             ruta binaria  o  ruta visor   │
+│             → partir por clase judicial         │  │             validar %PDF- → .part →       │
+│             → si aún satura: state.json         │  │             rename definitivo             │
+│                                                 │  │                                           │
+└─────────────────────────────────────────────────┘  └───────────────────────────────────────────┘
+             │                                                        │
+             ▼                                                        ▼
+    output/processes/&lt;id&gt;.json · index.json · state.json · failed.json · *.csv · pdfs/</div>
+
+  <h3>Las tres frases que lo resumen todo</h3>
+  <ol>
+    <li><b>El botón de buscar es un señuelo.</b> Su <code>onclick</code> es
+      <code>return executarReCaptcha();;A4J.AJAX.Submit(…)</code>: el <code>return</code> corta antes del
+      submit visible. El submit real es un <code>a4j:jsFunction</code> oculto, <code>executarPesquisa</code>,
+      cuyo id cambia entre despliegues y se lee de la página en cada sesión.</li>
+    <li><b>No hay paginación.</b> Toda consulta devuelve como máximo 30 filas y el hueco «Paginação» se
+      renderiza vacío. «Navegar todas las páginas» se convierte en <b>particionar el espacio de búsqueda</b>
+      por fecha de autuação hasta que cada tramo cabe bajo el tope.</li>
+    <li><b>Los enlaces de descarga caducan con la sesión.</b> La ficha se abre con un hash <code>ca</code>
+      estable, pero los enlaces de sus documentos llevan un hash ligado a la sesión que abrió la ficha.
+      Por eso cada PDF se descarga partiendo de una ficha recién abierta, nunca de URLs guardadas.</li>
+  </ol>
+
+  <h3>Las capas y por qué existen</h3>
+  <table>
+    <thead><tr><th style="width:20%">Capa</th><th style="width:30%">Responsabilidad</th><th>Por qué está separada</th></tr></thead>
+    <tbody>
+      <tr><td><code>http/</code></td><td>Transporte: cookies, charset, delays, tipado de errores</td><td>Todo lo que sabe de la red vive aquí. El resto del código nunca ve un status HTTP crudo, ve un error tipado.</td></tr>
+      <tr><td><code>pje/</code></td><td>Protocolo del portal: A4J, sesión, parsers, descarga</td><td>Es la parte que se rompe si el tribunal cambia el HTML. Aislada y cubierta con fixtures reales.</td></tr>
+      <tr><td><code>crawl/</code></td><td>Estrategia: qué pedir, en qué orden, cuándo parar</td><td>No sabe de HTML ni de HTTP. Solo decide la partición y el orden de enriquecimiento.</td></tr>
+      <tr><td><code>storage/</code></td><td>Persistencia atómica, índice, estado, fallos</td><td>Único punto que toca el disco. Hace posible cortar con Ctrl+C y reanudar sin duplicados.</td></tr>
+      <tr><td><code>util/</code></td><td>Reintentos, fechas, texto, ids, logger, rename</td><td>Funciones puras: es lo que la suite de tests puede fijar sin red.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box">
+    <span class="lbl">La regla de diseño que atraviesa todo el proyecto</span>
+    <b>Nunca completar algo en silencio.</b> Si una búsqueda devuelve un mensaje del portal en vez de una
+    tabla, el rango <i>no</i> se marca como completado. Si las movimentações no se pudieron paginar hasta el
+    final, el proceso queda con <code>detailFetched: false</code>. Si un día sigue saturado tras partir por
+    clase, se anota en <code>state.json.saturatedDays</code>. Un hueco explícito se reintenta; un hueco
+    silencioso se convierte en datos incorrectos que nadie detecta.
+  </div>
+</section>
+<!-- ============================ 2 ============================ -->
+<section class="sheet" id="s2">
+  <h2>2 · Estructura de carpetas: qué hace cada fichero</h2>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>PowerShell — scraper-challenge</span></div>
+<pre><span class="t-dim">PS C:\Users\js\Desktop\scraper-challenge&gt;</span> <span class="t-cmd">tree /f src</span>
+
+src/
+├── <span class="t-info">index.ts</span>              <span class="t-dim">115 líneas   CLI: discover / download / all / retry-failed / status</span>
+├── <span class="t-info">config.ts</span>             <span class="t-dim">107 líneas   toda la configuración por variable de entorno</span>
+├── <span class="t-info">types.ts</span>              <span class="t-dim">151 líneas   contrato de datos: ProcessRecord, DocumentRecord…</span>
+├── http/
+│   └── <span class="t-info">client.ts</span>         <span class="t-dim">214 líneas   axios + cookies + charset + delays + tipado de errores</span>
+├── pje/
+│   ├── <span class="t-info">a4j.ts</span>            <span class="t-dim">157 líneas   protocolo Ajax4jsf: serializar, construir, parchear</span>
+│   ├── <span class="t-info">session.ts</span>        <span class="t-dim">203 líneas   sesión JSF: abrir, buscar, ficha, páginas de movimentações</span>
+│   ├── <span class="t-info">listParser.ts</span>     <span class="t-dim">155 líneas   tabla de resultados: 30 filas, tope, segredo de justiça</span>
+│   ├── <span class="t-info">detailParser.ts</span>   <span class="t-dim">263 líneas   ficha: dados, partes, movimentações, documentos</span>
+│   └── <span class="t-info">documents.ts</span>      <span class="t-dim">152 líneas   descarga de PDF por dos rutas + validación</span>
+├── crawl/
+│   ├── <span class="t-info">discover.ts</span>       <span class="t-dim">233 líneas   FASE 1: partición por fechas + medición del total</span>
+│   └── <span class="t-info">enrich.ts</span>         <span class="t-dim">265 líneas   FASE 2: fichas completas + descargas</span>
+├── storage/
+│   └── <span class="t-info">store.ts</span>          <span class="t-dim">460 líneas   shards por proceso, índice, estado, fallos, CSV</span>
+├── util/
+│   ├── <span class="t-info">retry.ts</span>          <span class="t-dim">147 líneas   taxonomía de errores + backoff exponencial</span>
+│   ├── <span class="t-info">dates.ts</span>          <span class="t-dim"> 92 líneas   ISO ↔ dd/MM/yyyy, splitRange, aritmética en UTC</span>
+│   ├── <span class="t-info">text.ts</span>           <span class="t-dim"> 60 líneas   ids estables, CNJ, nombres de fichero seguros</span>
+│   ├── <span class="t-info">fs.ts</span>             <span class="t-dim"> 30 líneas   rename con reintento (bloqueo transitorio de Windows)</span>
+│   └── <span class="t-info">logger.ts</span>         <span class="t-dim"> 55 líneas   líneas con marca de tiempo a stdout y a fichero</span>
+└── __tests__/            <span class="t-dim">56 tests, 8 suites, sin red</span>
+    ├── fixtures/         <span class="t-dim">landing.html 46 KB · detail-process.html 106 KB</span>
+    │                     <span class="t-dim">document-viewer.html 52 KB · search-results.xml 35 KB</span>
+    └── *.test.ts         <span class="t-dim">a4j 8 · dates 6 · detailParser 7 · fs 3 · listParser 8</span>
+                          <span class="t-dim">retry 15 · store 4 · text 5</span></pre>
+  </div>
+  <div class="cap"><b>Captura 1.</b> Árbol real del proyecto con el recuento de líneas de cada módulo (3.432 en total).</div>
+
+  <h3>Recorrido en el orden en que se ejecutan</h3>
+  <table>
+    <thead><tr><th style="width:23%">Fichero</th><th>Qué hace y qué tienes que saber decir de él</th></tr></thead>
+    <tbody>
+      <tr><td class="file">index.ts</td><td>Punto de entrada. Elige comando, monta el <code>Store</code>, registra <code>SIGINT</code>/<code>SIGTERM</code> para guardar antes de morir y despacha a <code>Discoverer</code> o <code>Enricher</code>. <code>status</code> no toca la red: imprime el progreso leyendo los ficheros de salida.</td></tr>
+      <tr><td class="file">config.ts</td><td>Un solo objeto <code>CONFIG</code> congelado (<code>as const</code>), poblado desde variables de entorno con validación (<code>envInt</code> revienta si le pasas algo que no es un número ≥ 0). Ninguna otra parte del código lee <code>process.env</code>.</td></tr>
+      <tr><td class="file">http/client.ts</td><td>Lo que axios no trae: tarro de cookies manual, decodificación por charset, pausa mínima con jitter, y sobre todo <code>classify()</code>, que convierte statuses y páginas de error disfrazadas de 200 en errores tipados <b>antes</b> de que nadie parsee nada. <code>maxRedirects: 0</code> porque aquí un 302 significa algo.</td></tr>
+      <tr><td class="file">pje/a4j.ts</td><td>El protocolo RichFaces en tres funciones: <code>serializeForm</code> (el formulario entero, en orden de documento, como haría el navegador), <code>buildA4jBody</code> (los marcadores que añade A4J) y <code>applyA4jResponse</code> (parchear el documento vivo con los fragmentos que devuelve el servidor).</td></tr>
+      <tr><td class="file">pje/session.ts</td><td>La conversación con el portal: <code>open()</code> lee cookies, ViewState y el control de búsqueda oculto; <code>search()</code> hace el POST A4J; <code>getDetail(ca)</code> abre la ficha; <code>getMovementsPage()</code> mueve el slider de movimentações.</td></tr>
+      <tr><td class="file">pje/listParser.ts</td><td>Convierte la tabla de resultados en filas. Devuelve además <code>isCapped</code> y <code>overflowBanner</code>: las dos señales que gobiernan la partición.</td></tr>
+      <tr><td class="file">pje/detailParser.ts</td><td>Ficha completa. Todo se localiza por <b>sufijo</b> de id (<code>[id$=":processoEvento"]</code>) porque los prefijos <code>j_idNNN</code> cambian entre despliegues.</td></tr>
+      <tr><td class="file">pje/documents.ts</td><td>Las dos rutas de descarga y <code>validatePdf()</code>. Escribe <code>.part</code> y renombra solo tras validar.</td></tr>
+      <tr><td class="file">crawl/discover.ts</td><td>La estrategia de cobertura: pila de rangos, partición binaria, partición secundaria por clase, medición del total y marcado de días saturados.</td></tr>
+      <tr><td class="file">crawl/enrich.ts</td><td>Fase 2. Aísla el fallo por elemento: un documento que agota reintentos no tumba el proceso, y un proceso que falla no tumba la corrida.</td></tr>
+      <tr><td class="file">storage/store.ts</td><td>Un fichero JSON por proceso (<i>shard</i>) escrito atómicamente, más un índice ligero. Los shards son la fuente de verdad; el índice se reconstruye desde ellos.</td></tr>
+      <tr><td class="file">util/retry.ts</td><td>La taxonomía de errores y <code>withRetry</code>. Es el fichero que más te van a preguntar.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box">
+    <span class="lbl">Detalle que suena bien en una entrevista</span>
+    <span class="file">util/fs.ts</span> existe por un fallo real: en Windows, renombrar sobre un fichero que el
+    indexador o el antivirus tiene abierto unos milisegundos falla con <code>EPERM</code>/<code>EBUSY</code>.
+    Toda escritura atómica del scraper termina en un rename, y una fase de descubrimiento de 19 minutos murió
+    exactamente ahí. El fix es un rename con reintento breve (25 ms, 50 ms, 100 ms…) solo para esos tres
+    códigos de error; cualquier otro sigue propagándose. Es un ejemplo de «el bug me enseñó dónde estaba el
+    supuesto equivocado», no de defensa preventiva.
+  </div>
+</section>
+
+<!-- ============================ 3 ============================ -->
+<section class="sheet" id="s3">
+  <h2>3 · El portal por dentro: JSF, RichFaces y el botón señuelo</h2>
+  <p class="lede">Esta sección responde la pregunta «¿cómo enfrentaste JSF?». Es el corazón técnico del proyecto.</p>
+
+  <h3>3.1 Qué es exactamente el portal</h3>
+  <table>
+    <thead><tr><th style="width:26%">Pieza</th><th>Consecuencia práctica para el scraper</th></tr></thead>
+    <tbody>
+      <tr><td>JBoss Seam 2 + <b>JSF 1.2</b></td><td>El estado de la vista vive en el servidor. Cada interacción exige devolver <code>javax.faces.ViewState</code> y el formulario <b>completo</b>.</td></tr>
+      <tr><td><b>RichFaces / Ajax4jsf 3.3</b></td><td>No hay navegación por URL: todo es un POST por XHR y la respuesta es un XML que dice qué fragmentos del DOM reemplazar.</td></tr>
+      <tr><td>Ids <code>j_id244</code>, <code>j_id561</code>…</td><td>Los genera el framework y cambian entre despliegues. <b>Nunca se codifican a mano</b>: se leen de la página o se buscan por sufijo.</td></tr>
+      <tr><td>HTML en <b>ISO-8859-1</b>, XML en UTF-8</td><td>Decodificar con el charset que declara cada respuesta o los acentos de «Movimentações» se corrompen.</td></tr>
+      <tr><td>WAF F5 delante</td><td>Sirve una página de bloqueo con <b>HTTP 200</b>. Hay que detectarla por contenido, no por status.</td></tr>
+      <tr><td>reCAPTCHA cargado pero <b>desactivado</b></td><td>Compila a <code>if (false) { grecaptcha.execute() }</code>. No hay captcha que resolver ni que evadir.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 El botón señuelo</h3>
+  <p>Este es el hallazgo que desbloqueó todo. El <code>onclick</code> del botón visible «Pesquisar» es:</p>
+<pre class="code">onclick="<span class="k">return</span> executarReCaptcha();;A4J.AJAX.Submit(<span class="s">'fPP'</span>,…,{<span class="s">'parameters'</span>:{<span class="s">'fPP:searchProcessos'</span>:…}});<span class="k">return</span> <span class="n">false</span>;
+       <span class="c">   ▲ devuelve undefined … y el `return` sale de la función AQUÍ.</span>
+       <span class="c">     El A4J.AJAX.Submit que ves nunca llega a ejecutarse.</span>
+
+<span class="c">// El submit real es un a4j:jsFunction declarado en otra parte de la página:</span>
+executarPesquisa=<span class="k">function</span>(){A4J.AJAX.Submit(<span class="s">'fPP'</span>,<span class="n">null</span>,{…,<span class="s">'parameters'</span>:{<span class="s">'fPP:j_id244'</span>:<span class="s">'fPP:j_id244'</span>}})};</pre>
+  <p>Enviar <code>fPP:searchProcessos</code> devuelve un 200 perfectamente válido… que solo re-renderiza el
+  panel de mensajes. Enviar el control del <code>jsFunction</code> renderiza la tabla de resultados. Ese id
+  cambia entre despliegues, así que <code>findSearchControl()</code> lo extrae de la página en cada apertura
+  de sesión y cae al botón visible solo si no lo encuentra:</p>
+<pre class="code"><span class="c">// src/pje/session.ts — findSearchControl()</span>
+<span class="k">const</span> at = html.indexOf(<span class="s">'executarPesquisa=function'</span>);
+<span class="k">if</span> (at &gt;= <span class="n">0</span>) {
+  <span class="k">const</span> pairs = parseA4jParameters(html.slice(at, at + <span class="n">1200</span>));
+  <span class="k">const</span> own = pairs.find(([k, v]) =&gt; k === v);   <span class="c">// el control se nombra a sí mismo</span>
+  <span class="k">if</span> (own) <span class="k">return</span> own;
+}</pre>
+
+  <h3>3.3 El ciclo de una petición A4J</h3>
+  <div class="flow">1. serializeForm($, 'fPP')      →  todos los input/select/textarea del formulario, en orden de documento
+2. overrides                    →  se sustituyen los campos de criterio POR SUFIJO (:dataAutuacaoInicioInputDate…)
+3. buildA4jBody                 →  AJAXREQUEST=_viewRoot + campos + &lt;control&gt;=&lt;control&gt; + AJAX:EVENTS_COUNT=1
+4. POST listView.seam           →  Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+5. respuesta XML                →  &lt;meta name="Ajax-Update-Ids" content="fPP:processosGridPanel"/&gt;
+                                   &lt;div id="ajax-view-state"&gt;&lt;input name="javax.faces.ViewState" value="…"/&gt;
+6. applyA4jResponse($, xml)     →  reemplaza esos ids en el documento VIVO y refresca el ViewState
+7. parseListPage($)             →  se lee la tabla del documento ya parcheado</div>
+  <p>El punto 6 es la idea clave: el scraper mantiene un documento cheerio vivo y lo parchea <b>igual que
+  haría el navegador</b>. Sin eso, la segunda búsqueda enviaría un ViewState caducado.</p>
+
+  <div class="box warn">
+    <span class="lbl">La trampa que evita datos incorrectos</span>
+    Una respuesta A4J que solo actualiza el panel de mensajes es un 200 válido y deja la tabla <b>anterior</b>
+    en el documento. Si la parseas, completas un rango con filas de otra consulta. Por eso
+    <code>search()</code> exige que los ids actualizados incluyan <code>processosGridPanel</code> o
+    <code>processosTable</code>; si no, lanza <code>UnexpectedStructureError</code> con el mensaje del portal.
+  </div>
+
+  <h3>3.4 Sesión, cookies y expiración</h3>
+  <ul>
+    <li>Node no tiene tarro de cookies: se implementa a mano. Cookies observadas: <code>JSESSIONID</code>,
+      <code>ROUTER_ID</code> y dos del WAF (<code>trf50…</code>).</li>
+    <li>La cabecera <code>Cookie:</code> solo se envía si hay algo que enviar: una cabecera
+      <code>Cookie:</code> vacía es uno de los disparadores del bloqueo del WAF.</li>
+    <li>La sesión se recicla cada <code>SESSION_MAX_REQUESTS</code> (400 peticiones) antes de que el portal
+      la tire él.</li>
+    <li><code>ViewExpiredException</code> en el XML → <code>SessionExpiredError</code> → se reabre sesión y
+      se reintenta.</li>
+    <li><code>open()</code> pone <code>this.$ = undefined</code> <b>antes</b> de resetear las cookies: si la
+      reapertura falla, la sesión queda cerrada. Dejar el documento viejo haría que el siguiente intento
+      enviara un ViewState antiguo sin cookies.</li>
+  </ul>
+</section>
+<!-- ============================ 4 ============================ -->
+<section class="sheet" id="s4">
+  <h2>4 · Fase 1 · descubrimiento: particionar en vez de paginar</h2>
+
+  <h3>4.1 El problema: el portal miente sobre su tamaño</h3>
+  <ul>
+    <li>Toda consulta filtrada devuelve <b>como máximo 30 filas</b>.</li>
+    <li>El pie dice <code>min(total, 30) resultados encontrados</code>, así que el número que ves nunca pasa de 30.</li>
+    <li>El hueco del paginador (<code>&lt;div title="Paginação"&gt;</code>) se renderiza <b>vacío siempre</b>.
+      No hay «página 2» que pedir.</li>
+  </ul>
+  <p>Conclusión: «navegar por todas las páginas del sitio» no se puede hacer paginando. Se hace
+  <b>particionando el espacio de búsqueda</b> hasta que cada partición cabe bajo el tope.</p>
+
+  <h3>4.2 La medición del volumen — el test en frío, sin ingesta</h3>
+  <div class="box ok">
+    <span class="lbl">Cómo se midió el corpus</span>
+    El formulario rechaza una búsqueda sin criterios («Pelo menos um dos critérios de pesquisa deve ser
+    informado»). Pero una fecha <b>sintácticamente válida e inexistente</b>, <code>31/02/2000</code>, pasa
+    la validación y el conversor de JSF la descarta: la consulta corre <b>sin filtro</b> y el pie anuncia el
+    total real del corpus. Es una sola petición, se lanza <b>antes de guardar nada</b> y sus filas
+    <b>no se ingieren</b>: solo se lee el número. Medición en frío, coste 1 petición: <b>106.763 procesos</b>.
+  </div>
+<pre class="code"><span class="c">// src/crawl/discover.ts — measureTotal(): se ejecuta al principio de run(), antes del primer rango</span>
+<span class="k">const</span> page = <span class="k">await</span> <span class="k">this</span>.session.search({ dateFrom: <span class="s">'31/02/2000'</span>, dateTo: <span class="s">'31/02/2000'</span> });
+<span class="k">if</span> (page.announcedTotal &gt; CONFIG.resultCap) {
+  <span class="k">this</span>.store.setMeasuredTotal(page.announcedTotal);   <span class="c">// solo el número. Ninguna fila se almacena.</span>
+  log.info(<span class="s">`portal total: ${page.announcedTotal} processes (unfiltered count)`</span>);
+}</pre>
+  <p>El total se cachea en <code>state.json</code> con su marca de tiempo y se vuelve a medir si tiene más de
+  24 horas. <code>npm run status</code> lo contrasta contra lo descubierto: por eso el progreso se lee como
+  <code>10062 of 106763 announced by the portal</code> y no como un porcentaje inventado.</p>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>output/scraper.log — arranque de la corrida</span></div>
+<pre><span class="t-dim">[2026-08-26T05:19:08.746Z +    3.9s]</span> <span class="t-ok">INFO </span> command=all base=https://pjett.trf5.jus.br output=…\output
+<span class="t-dim">[2026-08-26T05:19:08.917Z +    4.1s]</span> <span class="t-ok">INFO </span> discovery window 1990-01-01..1994-12-31 (1826 days), result cap 30
+<span class="t-dim">[2026-08-26T05:19:12.213Z +    7.4s]</span> <span class="t-ok">INFO </span> session opened: cookies=[<span class="t-str">JSESSIONID, ROUTER_ID, trf501ad1ee3, trf501f66e06</span>] viewState=<span class="t-str">j_id1</span> searchControl=<span class="t-key">fPP:j_id244</span>
+<span class="t-dim">[2026-08-26T05:19:13.644Z +    8.8s]</span> <span class="t-ok">INFO </span> <span class="t-warn">portal total: 106763 processes (unfiltered count)</span>
+<span class="t-dim">[2026-08-26T05:19:14.827Z +   10.0s]</span> <span class="t-ok">INFO </span> search 1990-01-01..1994-12-31: 7 rows (7 new) | total stored 7</pre>
+  </div>
+  <div class="cap"><b>Captura 2.</b> La medición en frío ocurre en el segundo 8,8 de la corrida, con la sesión recién abierta y cero procesos almacenados. Fíjate en <code>searchControl=fPP:j_id244</code>: el id oculto leído de la página, no codificado a mano.</div>
+
+  <h3>4.3 El algoritmo de partición</h3>
+  <div class="flow">pila = [ {1985-01-01 .. hoy} ]
+mientras la pila no esté vacía:
+    rango = pila.pop()
+    si el rango ya está en state.json.completedRanges → saltar        ← esto es lo que hace la fase reanudable
+    resultado = buscar(rango)
+        ≤ 29 filas          → guardar filas, markRangeCompleted(rango)
+        = 30 filas (CAPPED) → si el rango dura &gt; 1 día:  [a, b] = splitRange(rango);  pila.push(b, a)
+                              si el rango es 1 solo día: splitDayByClass(día)
+</div>
+  <ul>
+    <li><b>Partición binaria, no calendario.</b> <code>splitRange</code> parte el rango por la mitad en días.
+      Se adapta sola a la densidad: 1986–2004 caben por año (147 procesos en total), 2005–2026 bajan hasta
+      mes/semana/día.</li>
+    <li><b>Orden cronológico.</b> Se hace <code>push(b, a)</code> para que <code>pop()</code> saque primero
+      la mitad temprana; el log se lee en orden y es reanudable de forma intuitiva.</li>
+    <li><b>Partición secundaria por clase judicial.</b> Si un solo día sigue devolviendo 30, se relanza la
+      consulta filtrando por cada clase que aparece <b>en la propia respuesta saturada</b> (siempre hay
+      material, porque cada fila imprime su clase).</li>
+    <li><b>Días saturados.</b> Si aun así queda residuo <b>y</b> el portal mostró el banner de desborde, el
+      día se anota en <code>state.json.saturatedDays</code> con una nota. Es cobertura parcial declarada.</li>
+  </ul>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>output/scraper.log — partición binaria en acción</span></div>
+<pre><span class="t-dim">+  2.9s</span> <span class="t-ok">INFO </span> search 1985-01-01..2026-08-26: 30 rows (25 new) <span class="t-warn">CAPPED -&gt; split</span> | total stored 32
+<span class="t-dim">+  4.4s</span> <span class="t-ok">INFO </span> search 1985-01-01..2005-10-28: 30 rows (19 new) <span class="t-warn">CAPPED -&gt; split</span> | total stored 51
+<span class="t-dim">+  6.5s</span> <span class="t-ok">INFO </span> search 1995-06-01..2005-10-28: 30 rows (11 new) <span class="t-warn">CAPPED -&gt; split</span> | total stored 62
+<span class="t-dim">+  7.6s</span> <span class="t-ok">INFO </span> search 1995-06-01..2000-08-13: 30 rows ( 0 new) <span class="t-warn">CAPPED -&gt; split</span> | total stored 62
+<span class="t-dim">+  9.9s</span> <span class="t-ok">INFO </span> search 1998-01-06..2000-08-13: 30 rows (24 new) <span class="t-warn">CAPPED -&gt; split</span> | total stored 86
+<span class="t-dim">+ 13.2s</span> <span class="t-ok">INFO </span> search 2000-08-14..2005-10-28: 30 rows (30 new) <span class="t-warn">CAPPED -&gt; split</span> | total stored 118</pre>
+  </div>
+  <div class="cap"><b>Captura 3.</b> 41 años → 20 años → 10 → 5 → 2. El <code>(0 new)</code> de la cuarta línea es normal: los rangos se solapan durante el descenso y el índice deduplica por id.</div>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>output/scraper.log — un día saturado y su partición por clase</span></div>
+<pre><span class="t-dim">+1086.4s</span> <span class="t-ok">INFO </span> search 2019-12-20..2019-12-20: 30 rows (8 new) <span class="t-warn">CAPPED -&gt; split</span> | total stored 8764
+<span class="t-dim">+1086.4s</span> <span class="t-warn">WARN </span> day 2019-12-20 is capped at 30: splitting by 5 class name(s) seen in the capped response
+<span class="t-dim">+1086.9s</span> <span class="t-ok">INFO </span> search 2019-12-20..2019-12-20 class=<span class="t-str">"APELAÇÃO / REMESSA NECESSÁRIA"</span>: 10 rows (0 new)
+<span class="t-dim">+1087.8s</span> <span class="t-ok">INFO </span> search 2019-12-20..2019-12-20 class=<span class="t-str">"APELAÇÃO CRIMINAL"</span>:            2 rows (0 new)
+<span class="t-dim">+1088.8s</span> <span class="t-ok">INFO </span> search 2019-12-20..2019-12-20 class=<span class="t-str">"APELAÇÃO CÍVEL"</span>:              19 rows (3 new)
+<span class="t-dim">+1089.5s</span> <span class="t-ok">INFO </span> search 2019-12-20..2019-12-20 class=<span class="t-str">"AGRAVO REGIMENTAL CÍVEL"</span>:      1 rows (0 new)
+<span class="t-dim">+1090.3s</span> <span class="t-ok">INFO </span> search 2019-12-20..2019-12-20 class=<span class="t-str">"CUMPRIMENTO DE SENTENÇA"</span>:      1 rows (0 new)
+<span class="t-dim">+1091.4s</span> <span class="t-ok">INFO </span> search 2019-12-21..2019-12-21: 11 rows (3 new) | total stored 8770</pre>
+  </div>
+  <div class="cap"><b>Captura 4.</b> El día 20/12/2019 devolvía 30 filas; las 5 clases visibles suman 33 filas y ninguna satura, así que el día queda cubierto. Esta es la única situación en toda la corrida que exigió partición secundaria.</div>
+
+  <div class="box warn">
+    <span class="lbl">Matiz que demuestra que entendiste el problema</span>
+    30 filas <b>no</b> significan necesariamente desbordamiento: un día con exactamente 30 procesos está
+    completo. Por eso el parser distingue <code>isCapped</code> (llegó al tope, hay que investigar) de
+    <code>overflowBanner</code> (el portal dijo textualmente «somente os 30 primeiros serão exibidos»).
+    Solo el banner es prueba de que se ocultaron filas, y solo el banner marca el día como saturado.
+  </div>
+</section>
+
+<!-- ============================ 5 ============================ -->
+<section class="sheet" id="s5">
+  <h2>5 · Fase 2 · enriquecimiento: ficha, partes y movimentações</h2>
+
+  <h3>5.1 Qué se extrae de cada proceso</h3>
+  <table>
+    <thead><tr><th style="width:24%">Sección de la ficha</th><th style="width:36%">Cómo se localiza</th><th>Notas</th></tr></thead>
+    <tbody>
+      <tr><td>Dados do Processo</td><td><code>.propertyView</code> → pares <code>.name</code>/<code>.value</code></td><td>Se guarda tal cual, con las etiquetas del portal como claves.</td></tr>
+      <tr><td>Polo ativo / passivo / outros</td><td><code>table[id$=":processoPartesPoloAtivoResumidoList"]</code> y hermanas</td><td>Los abogados van indentados: se detectan por ausencia de <code>span.text-bold</code> → <code>isRepresentative</code>.</td></tr>
+      <tr><td>Movimentações</td><td><code>table[id$=":processoEvento"]</code></td><td><b>15 por página.</b> Se paginan todas con el slider (ver 5.2).</td></tr>
+      <tr><td>Documentos</td><td><code>table[id$=":processoDocumentoGridTab"]</code></td><td>Cada fila publica su ruta de descarga (binaria o visor).</td></tr>
+    </tbody>
+  </table>
+
+  <h3>5.2 La paginación de movimentações: un slider, no un paginador</h3>
+  <p>Las movimentações se paginan con un <code>rich:inputNumberSlider</code> que vive en su <b>propio
+  formulario</b> y en su <b>propia región Ajax</b>. El scraper lee del JavaScript inline el número de páginas
+  (<code>'maxValue'</code>), el control que dispara el <code>onchange</code> y el <code>containerId</code>:</p>
+<pre class="code"><span class="c">// detailParser.ts — findMovementsPager() lee esto del HTML:</span>
+<span class="k">new</span> Richfaces.Slider(<span class="s">"X:j_id561:j_id562"</span>,{<span class="s">'minValue'</span>:<span class="s">'1'</span>,<span class="s">'maxValue'</span>:<span class="s">'7'</span>,…
+   <span class="s">'onchange'</span>:<span class="s">'A4J.AJAX.Submit(\'X:j_id561\',event,{…\'containerId\':\'X:j_id474\','</span>
+              <span class="s">'\'parameters\':{\'X:j_id561:j_id563\':\'X:j_id561:j_id563\'}})'</span>})
+
+<span class="c">// session.ts — getMovementsPage(): el cuerpo del POST para la página N</span>
+<span class="k">const</span> body = buildA4jBody($detail, { formId: pager.formId, control: pager.control },
+                          [[pager.pageField, String(page)]]);
+<span class="k">if</span> (pager.containerId) body[<span class="n">0</span>] = [<span class="s">'AJAXREQUEST'</span>, pager.containerId];</pre>
+  <p>Verificado en la corrida real con historiales de 90, 282, 343 y 597 movimentações, todos completos.</p>
+
+  <div class="box bad">
+    <span class="lbl">Regla: un historial truncado NO es una ficha completa</span>
+    Si alguna página del slider falla, el proceso se guarda con lo recogido pero con
+    <code>detailFetched: false</code> y una entrada en <code>failed.json</code> que dice
+    <code>movements truncated: 120 of 282 collected</code>. La siguiente corrida lo rehace. Marcarlo como
+    completo sería registrar un historial parcial como si fuera el historial entero: el peor error posible
+    en datos judiciales.
+  </div>
+
+  <h3>5.3 Dos optimizaciones que conviene saber explicar</h3>
+  <ul>
+    <li><b>El HTML de la ficha se vuelve a pedir en cada pasada</b> (los enlaces de documento están ligados a
+      la sesión), <b>pero el historial ya completo no se vuelve a paginar</b>. En un proceso de 597
+      movimentações eso ahorra 39 POST A4J en la pasada de PDFs.</li>
+    <li><b>Un proceso cuya ficha ya agotó sus intentos se deja para <code>retry-failed</code></b> en vez de
+      reintentarse en cada reanudación: si no, cada arranque paga el calendario completo de backoff por un
+      proceso que probablemente sigue roto.</li>
+  </ul>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>output/scraper.log — cola de la corrida en curso</span></div>
+<pre><span class="t-dim">+  2.1s</span> <span class="t-ok">INFO </span> detail BR-TRF5-0000121-52.2012.4.05.8303:  2 parties, <span class="t-str">158/158</span> movements,  8 documents
+<span class="t-dim">+  2.9s</span> <span class="t-ok">INFO </span> detail BR-TRF5-0000122-42.2009.4.05.8400:  4 parties, <span class="t-str">78/78</span> movements,   2 documents
+<span class="t-dim">+  4.1s</span> <span class="t-ok">INFO </span> detail BR-TRF5-0000122-75.2014.4.05.8106:  9 parties, <span class="t-str">343/343</span> movements, 10 documents
+<span class="t-dim">+  9.9s</span> <span class="t-ok">INFO </span> detail BR-TRF5-0000122-88.1990.8.15.0351:  4 parties, <span class="t-str">156/156</span> movements, 13 documents
+<span class="t-dim">+ 30.6s</span> <span class="t-ok">INFO </span> detail BR-TRF5-0000123-60.2009.4.05.8001: 12 parties, <span class="t-str">597/597</span> movements, 15 documents
+<span class="t-dim">+ 36.8s</span> <span class="t-ok">INFO </span> detail BR-TRF5-0000125-91.2009.4.05.8401: 12 parties, <span class="t-str">175/175</span> movements, 10 documents
+<span class="t-dim">+ 52.6s</span> <span class="t-ok">INFO </span> detail BR-TRF5-0000130-84.2016.4.05.8202: 18 parties, <span class="t-str">307/307</span> movements, 15 documents
+<span class="t-dim">+ 78.1s</span> <span class="t-ok">INFO </span> detail BR-TRF5-0000134-78.2017.4.05.8108: 12 parties, <span class="t-str">410/410</span> movements, 15 documents</pre>
+  </div>
+  <div class="cap"><b>Captura 5.</b> <code>597/597</code> significa recogidas / anunciadas por el portal. El proceso de 597 movimentações tardó ~20 s: son 39 POST del slider a ~0,7 s cada uno más la ficha. Ritmo observado: ~6,7 s por ficha completa.</div>
+
+  <h3>5.4 Estructura de un registro guardado</h3>
+<pre class="code">{
+  <span class="s">"id"</span>: <span class="s">"BR-TRF5-0006273-97.1992.4.05.0000"</span>,   <span class="c">// PAIS-FUENTE-clave única de la fuente</span>
+  <span class="s">"source"</span>: <span class="s">"BR-TRF5"</span>,
+  <span class="s">"number"</span>: <span class="s">"0006273-97.1992.4.05.0000"</span>,          <span class="c">// número CNJ</span>
+  <span class="s">"ca"</span>: <span class="s">"8a8adae773b623ea…"</span>,                     <span class="c">// hash de acceso a la ficha (48 hex, estable)</span>
+  <span class="s">"className"</span>: <span class="s">"CUMPRIMENTO DE SENTENÇA CONTRA A FAZENDA PÚBLICA"</span>,
+  <span class="s">"distributionDate"</span>: <span class="s">"1992-05-26"</span>,
+  <span class="s">"details"</span>: { <span class="s">"Número Processo"</span>: …, <span class="s">"Jurisdição"</span>: <span class="s">"TRF5"</span>, … },
+  <span class="s">"parties"</span>: [ { <span class="s">"pole"</span>:<span class="s">"ATIVO"</span>, <span class="s">"name"</span>:<span class="s">"CLEONICE MARINHO DE ANDRADE (ESPÓLIO)"</span>,
+                <span class="s">"role"</span>:<span class="s">"REQUERENTE"</span>, <span class="s">"isRepresentative"</span>:<span class="n">false</span> },
+              { …, <span class="s">"role"</span>:<span class="s">"ADVOGADO"</span>, <span class="s">"document"</span>:<span class="s">"OAB MS4120-B - CPF: 048.769.891-68"</span>,
+                <span class="s">"isRepresentative"</span>:<span class="n">true</span> } ],          <span class="c">// 18 partes en total</span>
+  <span class="s">"movementsTotal"</span>: <span class="n">282</span>, <span class="s">"movements"</span>: [ … ],       <span class="c">// 282/282 recogidas</span>
+  <span class="s">"documents"</span>: [ { <span class="s">"id"</span>:<span class="s">"…-DOC-6052946"</span>, <span class="s">"idBin"</span>:<span class="s">"5989146"</span>, <span class="s">"title"</span>:<span class="s">"Despacho"</span>,
+                  <span class="s">"download"</span>:<span class="s">"binary"</span>, <span class="s">"status"</span>:<span class="s">"downloaded"</span>,
+                  <span class="s">"file"</span>:<span class="s">"pdfs\\…_6052946_2025-08-15_Despacho.pdf"</span>, <span class="s">"bytes"</span>:<span class="n">20051</span> } ],
+  <span class="s">"detailFetched"</span>: <span class="n">true</span>,
+  <span class="s">"firstSeenAt"</span>: <span class="s">"2026-08-26T05:19:14.636Z"</span>, <span class="s">"updatedAt"</span>: <span class="s">"2026-08-26T05:42:38.702Z"</span>
+}</pre>
+</section>
+<!-- ============================ 6 ============================ -->
+<section class="sheet" id="s6">
+  <h2>6 · Descarga y validación de los PDF</h2>
+
+  <h3>6.1 Dos rutas, ambas implementadas</h3>
+  <div class="flow">RUTA A · binaria   (documentos guardados como binario: Decisão, Inteiro Teor, Acórdão…)
+  GET  listView.seam?idBin=N&amp;…&amp;actionMethod=…setDownloadInstance(row)
+       → 302  Location: /pjeconsulta/download.seam?cid=N
+  GET  /pjeconsulta/download.seam?cid=N
+       → 200  application/pdf   Content-Disposition: filename="…"   bytes %PDF-1.4
+
+RUTA B · visor     (documentos nacidos como HTML: Despacho, Certidão…)
+  GET  documentoSemLoginHTML.seam?ca=&lt;hash 96 hex&gt;&amp;idProcessoDoc=N     → visor HTML
+  POST documentoSemLoginHTML.seam
+       campos del formulario del visor + &lt;form&gt;:downloadPDF + ca + idProcDocBin
+       → 200  application/pdf   attachment; filename="&lt;numeroCNJ&gt;_&lt;idDoc&gt;.pdf"
+
+RUTA C · ninguna   la fila no publica control de descarga → status: "unavailable"</div>
+  <p>Qué ruta usa cada documento lo dice la propia fila: si trae <code>href</code> con
+  <code>setDownloadInstance</code> es binaria; si trae <code>documentoSemLoginHTML.seam</code> es visor; si no
+  trae ninguna, se registra como no disponible y <b>no</b> como fallo.</p>
+
+  <div class="box warn">
+    <span class="lbl">El detalle que obliga a rediseñar la fase 2</span>
+    El hash <code>ca</code> de la <b>ficha</b> (48 hex) es <b>estable entre sesiones</b> — verificado
+    abriéndolo en una sesión virgen. El hash <code>ca</code> de un <b>documento</b> (96 hex) está
+    <b>ligado a la sesión</b> que abrió la ficha: reutilizarlo en otra sesión da 302. Por eso el descargador
+    nunca usa URLs guardadas: cada PDF parte de una ficha recién abierta en la misma sesión. Y si un intento
+    falla por sesión, el reintento vuelve a leer los enlaces de una ficha nueva antes de repetir.
+  </div>
+
+  <h3>6.2 La validación: qué significa «es un PDF»</h3>
+<pre class="code"><span class="c">// src/pje/documents.ts</span>
+<span class="k">export function</span> validatePdf(res: HttpResponse): <span class="k">void</span> {
+  <span class="k">if</span> (res.status !== <span class="n">200</span>) <span class="k">throw new</span> InvalidDownloadError(<span class="s">`HTTP ${res.status} instead of a PDF`</span>);
+  <span class="k">const</span> magic = res.body.subarray(<span class="n">0</span>, <span class="n">5</span>).toString(<span class="s">'latin1'</span>);        <span class="c">// ← bytes mágicos</span>
+  <span class="k">if</span> (magic !== <span class="s">'%PDF-'</span>) {
+    <span class="k">const</span> kind = /text\/html/i.test(res.contentType) ? <span class="s">'an HTML page'</span>
+                                                 : <span class="s">`content-type ${res.contentType}`</span>;
+    <span class="k">throw new</span> InvalidDownloadError(<span class="s">`server returned ${kind} instead of a PDF (${res.body.length} B)`</span>);
+  }
+  <span class="k">if</span> (res.body.length &lt; MIN_PDF_BYTES) <span class="k">throw new</span> InvalidDownloadError(<span class="s">`PDF too small`</span>);  <span class="c">// 200 B</span>
+}
+
+<span class="c">// y la escritura, solo DESPUÉS de validar:</span>
+fs.writeFileSync(<span class="s">`${target}.part`</span>, res.body);
+renameSyncWithRetry(<span class="s">`${target}.part`</span>, target);   <span class="c">// rename atómico</span></pre>
+  <p>Tres comprobaciones independientes: <b>status</b>, <b>firma <code>%PDF-</code> en los primeros 5 bytes</b>
+  y <b>tamaño mínimo</b>. El content-type se usa para redactar el error, no para decidir: un servidor puede
+  mentir en la cabecera, los bytes no. Y el fichero se escribe como <code>.part</code> y se renombra solo al
+  final, así que una caída nunca deja medio PDF con aspecto de PDF completo.</p>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>PowerShell — verificación de los PDF en disco</span></div>
+<pre><span class="t-dim">PS&gt;</span> <span class="t-cmd">find output/pdfs -name "*.pdf" | wc -l</span>
+11
+
+<span class="t-dim">PS&gt;</span> <span class="t-cmd">for f in $(find output/pdfs -name "*.pdf"); do printf "%-6s %8s B  %s\n" "$(head -c 5 $f)" "$(stat -c%s $f)" "$(basename $f)"; done</span>
+<span class="t-ok">%PDF-</span>      3487 B  BR-TRF5-0000005-48.2009.4.05.8401_11788020_2026-07-31_Despacho.pdf
+<span class="t-ok">%PDF-</span>     61197 B  BR-TRF5-0000007-07.1985.8.20.0124_3469065_2025-10-27_Acordao.pdf
+<span class="t-ok">%PDF-</span>     36044 B  BR-TRF5-0000007-07.1985.8.20.0124_7222997_2026-05-11_Acordao.pdf
+<span class="t-ok">%PDF-</span>     20032 B  BR-TRF5-0003216-56.1994.4.05.8001_7907537_2020-10-18_Despacho.pdf
+<span class="t-ok">%PDF-</span>     20152 B  BR-TRF5-0003216-56.1994.4.05.8001_7907550_2021-01-20_Decisao.pdf
+<span class="t-ok">%PDF-</span>    245706 B  BR-TRF5-0006273-97.1992.4.05.0000_6052692_2023-06-30_CUMSENFA8-RN_027_AR…pdf
+<span class="t-ok">%PDF-</span>    123563 B  BR-TRF5-0006273-97.1992.4.05.0000_6052700_2023-06-30_CUMSENFA8-RN_055_Des…pdf
+<span class="t-ok">%PDF-</span>     21562 B  BR-TRF5-0006273-97.1992.4.05.0000_6052785_2023-09-15_Decisao.pdf</pre>
+  </div>
+  <div class="cap"><b>Captura 6.</b> Los 11 PDF descargados empiezan por <code>%PDF-</code>. La comprobación de la terminal es exactamente la que hace <code>validatePdf()</code> en tiempo de ejecución.</div>
+
+  <h3>6.3 El nombre del fichero</h3>
+<pre class="code">output/pdfs/&lt;idProceso&gt;/&lt;idProceso&gt;_&lt;idDocumento&gt;_&lt;fecha&gt;_&lt;título&gt;.pdf
+
+BR-TRF5-0006273-97.1992.4.05.0000_6052785_2023-09-15_Decisao.pdf
+└──── proceso ────────────────────┘ └─doc──┘ └──fecha─┘ └título┘</pre>
+  <p><code>safeFileName()</code> quita acentos (NFD + eliminación de diacríticos), deja solo
+  <code>[A-Za-z0-9._-]</code> y acota la longitud, así que el mismo nombre funciona en Windows, macOS y Linux.
+  Es <b>descriptivo</b> (se sabe qué es sin abrirlo) y <b>estable</b> (el mismo documento produce siempre el
+  mismo nombre, lo que permite saltarse la descarga si ya existe con tamaño válido).</p>
+</section>
+
+<!-- ============================ 7 ============================ -->
+<section class="sheet" id="s7">
+  <h2>7 · Errores, reintentos y backoff</h2>
+  <p class="lede">El fichero más preguntado del proyecto: <span class="file">src/util/retry.ts</span>, 147 líneas, 15 tests.</p>
+
+  <h3>7.1 La regla: clasificar primero, reaccionar después</h3>
+  <table>
+    <thead><tr><th style="width:26%">Señal</th><th style="width:22%">Tipo</th><th>Reacción</th></tr></thead>
+    <tbody>
+      <tr><td><code>429</code></td><td><code>HttpRetryableError</code></td><td>Backoff exponencial con jitter; si viene <code>Retry-After</code>, manda el servidor.</td></tr>
+      <tr><td><code>500 502 503 504 408</code></td><td><code>HttpRetryableError</code></td><td>Igual que el 429.</td></tr>
+      <tr><td>Cortes de red (<code>ECONNRESET</code>, <code>ETIMEDOUT</code>…)</td><td>código de error de Node</td><td>Reintento con backoff.</td></tr>
+      <tr><td><code>200</code> + «Requisição&nbsp;-&nbsp;Rejeitada»</td><td><code>WafBlockedError</code></td><td>Pausa de 90 s y <b>sesión nueva</b>. Reintentar rápido convierte un bloqueo blando en uno duro.</td></tr>
+      <tr><td><code>302</code> → <code>errorUnexpected.seam</code></td><td><code>HttpRetryableError(503)</code></td><td>Pausa de 5 s y reintento <b>sin</b> reabrir sesión (la sesión está bien, el servidor no).</td></tr>
+      <tr><td><code>ViewExpiredException</code> / 302 a la portada</td><td><code>SessionExpiredError</code></td><td>Reabrir sesión y repetir.</td></tr>
+      <tr><td>HTML donde iba un PDF</td><td><code>InvalidDownloadError</code></td><td><b>No</b> se guarda basura con extensión <code>.pdf</code>; se anota y se sigue.</td></tr>
+      <tr><td>Página con estructura desconocida</td><td><code>UnexpectedStructureError</code></td><td>Nunca se reintenta: el HTML no va a cambiar por insistir.</td></tr>
+      <tr><td><code>403</code> / <code>404</code></td><td><code>HttpFatalError</code></td><td>Fatal. El servidor ya dijo que no; repetir solo añade carga.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.2 El backoff</h3>
+<pre class="code"><span class="c">// src/util/retry.ts</span>
+<span class="k">export function</span> backoffMs(attempt: <span class="k">number</span>, err?: <span class="k">unknown</span>): <span class="k">number</span> {
+  <span class="c">// 1. Una instrucción explícita del servidor manda por encima del calendario propio.</span>
+  <span class="k">if</span> (err <span class="k">instanceof</span> HttpRetryableError &amp;&amp; err.retryAfterMs !== <span class="k">undefined</span>)
+    <span class="k">return</span> Math.min(err.retryAfterMs, RETRY_AFTER_HARD_CAP_MS);   <span class="c">// tope de cordura: 15 min</span>
+
+  <span class="c">// 2. El WAF tiene su propia pausa, mucho más larga.</span>
+  <span class="k">if</span> (err <span class="k">instanceof</span> WafBlockedError) <span class="k">return</span> CONFIG.retry.wafCooldownMs;   <span class="c">// 90 s</span>
+
+  <span class="c">// 3. Exponencial con FULL JITTER: base·2^(n-1), con techo, y luego la mitad + azar.</span>
+  <span class="k">const</span> exp    = CONFIG.retry.baseDelayMs * <span class="n">2</span> ** Math.max(<span class="n">0</span>, attempt - <span class="n">1</span>);   <span class="c">// 2s, 4s, 8s…</span>
+  <span class="k">const</span> capped = Math.min(exp, CONFIG.retry.maxDelayMs);                <span class="c">// techo 120 s</span>
+  <span class="k">return</span> Math.round(capped / <span class="n">2</span> + Math.random() * (capped / <span class="n">2</span>));           <span class="c">// jitter</span>
+}</pre>
+  <p>El jitter no es decorativo: sin él, varios elementos que fallan a la vez reintentan a la vez y golpean
+  el servidor en el mismo instante. Con jitter completo cada espera cae en <code>[capped/2, capped]</code>,
+  así que los reintentos se dispersan.</p>
+
+  <h3>7.3 El bucle</h3>
+<pre class="code"><span class="k">for</span> (<span class="k">let</span> attempt = <span class="n">1</span>; attempt &lt;= max; attempt++) {
+  <span class="k">try</span> { <span class="k">return await</span> fn(attempt); }
+  <span class="k">catch</span> (err) {
+    lastErr = err;
+    <span class="c">// se sale si el error no es reintentable, si el llamante lo veta, o si era el último intento</span>
+    <span class="k">if</span> (!isRetryable(err) || (opts.retryIf &amp;&amp; !opts.retryIf(err)) || attempt === max) <span class="k">break</span>;
+    <span class="k">await</span> sleep(backoffMs(attempt, err));
+    <span class="k">if</span> (opts.onRetry) {
+      <span class="k">try</span> { <span class="k">await</span> opts.onRetry(err, attempt + <span class="n">1</span>); }
+      <span class="k">catch</span> (hookErr) {
+        <span class="c">// El hook de recuperación hace red (reabrir sesión) y puede caer él mismo en el</span>
+        <span class="c">// throttle. Eso debe consumir el presupuesto de ESTE reintento, no abortar el bucle</span>
+        <span class="c">// ni atribuir mal el fallo. Su propio Retry-After / cooldown se respeta antes de seguir.</span>
+        <span class="k">await</span> sleep(backoffMs(attempt, hookErr));
+      }
+    }
+  }
+}
+<span class="k">throw</span> lastErr;   <span class="c">// el llamante lo anota en failed.json y continúa con el siguiente</span></pre>
+
+  <div class="box">
+    <span class="lbl">Tres decisiones del bucle que valen una pregunta cada una</span>
+    <b>1.</b> <code>onRetry</code> reabre la sesión <b>solo</b> si el error es de sesión o del WAF: un 429
+    corriente no debe costar una petición extra a la portada de un servidor que ya está saturado.<br>
+    <b>2.</b> El presupuesto de intentos es <b>por elemento</b>, no global: cada búsqueda, cada ficha y cada
+    documento tiene su propio <code>withRetry</code>. Un proceso roto no consume los intentos de los demás.<br>
+    <b>3.</b> <code>retryIf</code> permite vetos locales. En la paginación de movimentações se veta el
+    reintento ante <code>SessionExpiredError</code>: las páginas siguientes necesitan justamente el ViewState
+    que acaba de morir, así que reintentar sobre el mismo documento es tirar peticiones.
+  </div>
+
+  <h3>7.4 Cuando se agotan los intentos</h3>
+  <ol>
+    <li>El elemento se anota en <code>output/failed.json</code> con clave, fase, motivo, número de intentos
+      acumulado <b>entre corridas</b>, marca de tiempo y status HTTP.</li>
+    <li><b>La corrida continúa con el siguiente elemento.</b> El bucle de fase 2 tiene <code>try/catch</code>
+      por ficha y por documento.</li>
+    <li>Un éxito posterior limpia la entrada (<code>clearFailure</code>), así que
+      <code>failed.json</code> refleja lo que sigue roto, no el historial.</li>
+    <li><code>npm run retry-failed</code> reprocesa solo esas claves.</li>
+  </ol>
+</section>
+
+<!-- ============================ 8 ============================ -->
+<section class="sheet" id="s8">
+  <h2>8 · Persistencia y reanudación</h2>
+
+  <h3>8.1 Por qué un JSON monolítico no servía</h3>
+  <div class="box bad">
+    <span class="lbl">El cálculo que fuerza el diseño</span>
+    106.763 procesos × decenas de KB por registro enriquecido. Reescribir un único
+    <code>processes.json</code> tras cada proceso es <b>O(n²)</b> de E/S, y su forma serializada supera el
+    tamaño máximo de string de Node mucho antes de terminar el corpus. No es una preferencia de estilo: el
+    monolito <b>no puede funcionar</b> a esta escala.
+  </div>
+  <table>
+    <thead><tr><th style="width:28%">Fichero</th><th style="width:20%">¿Reconstruible?</th><th>Papel</th></tr></thead>
+    <tbody>
+      <tr><td><code>processes/&lt;id&gt;.json</code></td><td>— <b>es la fuente de verdad</b></td><td>Un fichero por proceso, escrito atómicamente en el momento en que el registro cambia. O(1) por actualización.</td></tr>
+      <tr><td><code>index.json</code></td><td>Sí, desde los shards</td><td>Índice ligero para dedupe, iteración y progreso. Se vacía a disco cada 60 s / 500 actualizaciones, no en cada cambio.</td></tr>
+      <tr><td><code>state.json</code></td><td><b>No</b></td><td>Rangos completados, días saturados, total medido. Es el punto de reanudación.</td></tr>
+      <tr><td><code>failed.json</code></td><td><b>No</b></td><td>Qué falló, por qué y cuántas veces.</td></tr>
+      <tr><td><code>processes.csv</code> / <code>documents.csv</code></td><td>Sí</td><td>Exportación tabular UTF-8 con BOM (Excel conserva los acentos).</td></tr>
+    </tbody>
+  </table>
+  <p>Lo no reconstruible se trata distinto: si <code>state.json</code> existe pero no se puede leer, se
+  aparta con marca de tiempo y <b>la corrida aborta</b>. Empezar de cero en silencio perdería primero el
+  punto de reanudación y después sobrescribiría la evidencia.</p>
+
+  <h3>8.2 Reanudación tras un corte</h3>
+  <div class="flow">Ctrl+C           → SIGINT: store.save(true) + exportCsv() + exit 130      (guardado limpio)
+kill / apagón    → los shards ya están en disco; index.json puede ir atrasado
+arranque         → loadIndex() lee index.json … y luego reconcileShards():
+                   todo shard que el índice no conoce se añade al índice
+                   «index.json was behind the shard files: N process(es) recovered»
+fase 1           → los rangos de state.json.completedRanges se saltan
+fase 2           → solo se procesan procesos sin detailFetched o con documentos pendientes</div>
+  <p>Ese <code>reconcileShards()</code> es la red de seguridad para el caso feo: matar el proceso sin SIGINT.
+  Sin él, los procesos escritos en los últimos 60 segundos serían invisibles para la fase 2, para el CSV y
+  para <code>status</code> — aunque su fichero estuviera perfectamente en disco.</p>
+
+  <h3>8.3 Deduplicación</h3>
+  <p>Los rangos se solapan durante el descenso binario, así que el mismo proceso se lista muchas veces.
+  El <code>upsert</code> por id resuelve todos los casos:</p>
+<pre class="code"><span class="k">const</span> existing = <span class="k">this</span>.get(record.id);
+merged = existing
+  ? { ...existing, ...stripUndefined(record),                    <span class="c">// lo nuevo definido gana…</span>
+      documents: mergeDocuments(existing.documents, record.documents),
+      firstSeenAt: existing.firstSeenAt,                          <span class="c">// …pero la 1ª vez no se pierde</span>
+      updatedAt: now }
+  : { ...record, firstSeenAt: record.firstSeenAt || now, updatedAt: now };
+<span class="k">return</span> !existing;                                                <span class="c">// true solo si era nuevo → "(N new)" del log</span></pre>
+  <ul>
+    <li><b>Re-listar no deshace el enriquecimiento:</b> <code>storeRow()</code> conserva
+      <code>detailFetched</code> y <code>foundInRange</code> del registro existente. Si no, cada solape
+      forzaría volver a bajar la ficha entera.</li>
+    <li><b>Una descarga completada nunca se degrada:</b> <code>mergeDocuments</code> mantiene
+      <code>downloaded</code> + <code>file</code> + <code>bytes</code> aunque el nuevo registro venga como
+      <code>pending</code>, y un éxito borra el <code>error</code> de un fallo anterior.</li>
+    <li><b>El shard manda sobre el índice:</b> <code>get()</code> lee del disco aunque el índice en memoria
+      no conozca el id, y de paso cura el índice. Así un índice desactualizado nunca provoca que se
+      sobrescriba un shard en lugar de fusionarlo.</li>
+  </ul>
+
+  <div class="box warn">
+    <span class="lbl">Limitación honesta que conviene reconocer tú mismo</span>
+    <code>npm run status</code> lee <code>index.json</code>, que se vacía a disco cada 60 s / 500
+    actualizaciones. Ejecutado <b>desde otro proceso</b> mientras la corrida está viva, sus contadores por
+    proceso pueden ir por detrás de los shards: en la captura de esta guía informa de 8 PDF descargados
+    cuando en disco ya hay 11. Los datos están completos; el resumen es el que va atrasado.
+    <code>reconcileShards()</code> hoy solo añade procesos que faltan, no refresca los contadores de los que
+    ya conoce.
+  </div>
+</section>
+<!-- ============================ 9 ============================ -->
+<section class="sheet" id="s9">
+  <h2>9 · Capturas de terminal de la corrida real</h2>
+  <p class="lede">Todo lo de esta sección es salida verbatim, capturada el 2026-08-26 sobre la corrida en curso.
+  Son la evidencia que respalda cada respuesta de la sección 10.</p>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>PowerShell — npm run status</span></div>
+<pre><span class="t-dim">PS C:\Users\js\Desktop\scraper-challenge&gt;</span> <span class="t-cmd">npm run status</span>
+
+&gt; scraper-challenge@1.0.0 status
+&gt; ts-node src/index.ts status
+
+<span class="t-dim">[2026-08-26T06:13:38.105Z +    0.4s]</span> <span class="t-ok">INFO </span> command=status base=https://pjett.trf5.jus.br output=C:\Users\js\Desktop\scraper-challenge\output attempts=3
+processes discovered : <span class="t-warn">10062 of 106763 announced by the portal</span>
+details fetched      : 123
+documents            : 1101 (downloaded 8, pending 1093, failed 0, unavailable 0)
+completed ranges     : 1 (<span class="t-str">1985-01-01 .. 2020-06-11</span>)
+saturated days       : 1
+failures to retry    : 5</pre>
+  </div>
+  <div class="cap"><b>Captura 7.</b> El comando de progreso. No toca la red: lo deduce de los ficheros de salida. Contrasta lo descubierto contra el total medido, así que el avance es verificable y no una estimación.</div>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>PowerShell — npm test</span></div>
+<pre><span class="t-dim">PS C:\Users\js\Desktop\scraper-challenge&gt;</span> <span class="t-cmd">npm test</span>
+
+&gt; scraper-challenge@1.0.0 test
+&gt; jest
+
+<span class="t-dim">[…]</span> <span class="t-warn">WARN </span> test: attempt 1/3 failed (HTTP 429): HTTP 429 -&gt; waiting 1s
+<span class="t-dim">[…]</span> <span class="t-warn">WARN </span> test: attempt 2/3 failed (HTTP 429): HTTP 429 -&gt; waiting 3s
+<span class="t-dim">[…]</span> <span class="t-warn">WARN </span> test: attempt 1/3 failed (HTTP 429): HTTP 429 -&gt; waiting 30s      <span class="t-dim">← Retry-After manda</span>
+<span class="t-dim">[…]</span> <span class="t-warn">WARN </span> test: attempt 1/5 failed (HTTP 503): HTTP 503 -&gt; waiting 1s
+<span class="t-dim">[…]</span> <span class="t-warn">WARN </span> test: attempt 2/5 failed (HTTP 503): HTTP 503 -&gt; waiting 2s
+<span class="t-dim">[…]</span> <span class="t-warn">WARN </span> test: attempt 3/5 failed (HTTP 503): HTTP 503 -&gt; waiting 4s       <span class="t-dim">← exponencial con jitter</span>
+<span class="t-dim">[…]</span> <span class="t-warn">WARN </span> test: attempt 1/3 failed: The JSF session or view state expired -&gt; waiting 2s
+<span class="t-dim">[…]</span> <span class="t-warn">WARN </span> test: recovery before attempt 2 failed too: HTTP 429 -&gt; waiting 1s <span class="t-dim">← el hook también falla</span>
+
+Test Suites: <span class="t-ok">8 passed</span>, 8 total
+Tests:       <span class="t-ok">56 passed</span>, 56 total
+Snapshots:   0 total
+Time:        9.297 s
+Ran all test suites.</pre>
+  </div>
+  <div class="cap"><b>Captura 8.</b> La suite corre <b>sin red</b>, con timers falsos (las esperas de segundos se completan al instante) y con fixtures reales del portal. Los WARN son las políticas de reintento ejercitándose, no fallos.</div>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>PowerShell — npm run typecheck</span></div>
+<pre><span class="t-dim">PS C:\Users\js\Desktop\scraper-challenge&gt;</span> <span class="t-cmd">npm run typecheck</span>
+
+&gt; scraper-challenge@1.0.0 typecheck
+&gt; tsc --noEmit &amp;&amp; tsc --noEmit -p tsconfig.test.json
+
+<span class="t-dim">(sin salida = sin errores)</span></pre>
+  </div>
+  <div class="cap"><b>Captura 9.</b> TypeScript en modo <code>strict</code>, con <code>noUncheckedIndexedAccess</code> y <code>noImplicitOverride</code>. Se comprueban también los tests, que usan un tsconfig propio.</div>
+
+  <div class="term big">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>output/scraper.log — reintentos y agotamiento sobre una ficha rota</span></div>
+<pre><span class="t-dim">[05:19:21.641Z +  16.8s]</span> <span class="t-warn">WARN </span> detail BR-TRF5-0006051-07.1991.4.05.8200: attempt <span class="t-warn">1/5</span> failed (HTTP 503): portal error page (errorUnexpected) for detail ?ca=77b2370dc7ad… -&gt; waiting 20s
+<span class="t-dim">[05:19:42.242Z +  37.4s]</span> <span class="t-warn">WARN </span> detail BR-TRF5-0006051-07.1991.4.05.8200: attempt <span class="t-warn">2/5</span> failed (HTTP 503): portal error page (errorUnexpected) … -&gt; waiting 20s
+<span class="t-dim">[05:20:02.768Z +  57.9s]</span> <span class="t-warn">WARN </span> detail BR-TRF5-0006051-07.1991.4.05.8200: attempt <span class="t-warn">3/5</span> failed (HTTP 503): portal error page (errorUnexpected) … -&gt; waiting 20s
+<span class="t-dim">[05:20:23.334Z +  78.5s]</span> <span class="t-warn">WARN </span> detail BR-TRF5-0006051-07.1991.4.05.8200: attempt <span class="t-warn">4/5</span> failed (HTTP 503): portal error page (errorUnexpected) … -&gt; waiting 20s
+<span class="t-dim">[05:20:43.858Z +  99.0s]</span> <span class="t-err">ERROR</span> detail BR-TRF5-0006051-07.1991.4.05.8200 <span class="t-err">failed permanently</span>: portal error page (errorUnexpected) for detail ?ca=77b2370dc7ad…
+<span class="t-dim">                                    </span> <span class="t-dim">↑ 5 intentos, 99 s de reloj. La corrida NO se detuvo: siguió con el proceso siguiente.</span>
+
+<span class="t-dim">— tras bajar MAX_ATTEMPTS de 5 a 3 (la pausa sigue en 20 s: el proceso vivo arrancó antes de ese cambio) —</span>
+
+<span class="t-dim">[05:56:00.639Z +   1.6s]</span> <span class="t-warn">WARN </span> detail BR-TRF5-0000017-65.2018.4.05.8201: attempt <span class="t-warn">1/3</span> failed (HTTP 503): portal error page (errorUnexpected) … -&gt; waiting 20s
+<span class="t-dim">[05:56:21.341Z +  22.3s]</span> <span class="t-warn">WARN </span> detail BR-TRF5-0000017-65.2018.4.05.8201: attempt <span class="t-warn">2/3</span> failed (HTTP 503): portal error page (errorUnexpected) … -&gt; waiting 20s
+<span class="t-dim">[05:56:42.115Z +  43.0s]</span> <span class="t-err">ERROR</span> detail BR-TRF5-0000017-65.2018.4.05.8201 <span class="t-err">failed permanently</span>: portal error page (errorUnexpected) …</pre>
+  </div>
+  <div class="cap"><b>Captura 10.</b> El mismo error, antes y después de bajar los intentos de 5 a 3 con la evidencia recogida: 99 s de bloqueo por proceso roto pasan a 43 s. La pausa de <code>errorUnexpected</code> también se bajó de 20 s a 5 s, pero eso solo se ve en las líneas de un proceso arrancado después del cambio: el de la captura sigue con 20 s. Ver pregunta 1 de la sección 10.</div>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>output/failed.json</span></div>
+<pre>{
+  <span class="t-str">"BR-TRF5-0000017-65.2018.4.05.8201"</span>: {
+    <span class="t-str">"key"</span>: <span class="t-str">"BR-TRF5-0000017-65.2018.4.05.8201"</span>,
+    <span class="t-str">"stage"</span>: <span class="t-str">"detail"</span>,
+    <span class="t-str">"reason"</span>: <span class="t-str">"portal error page (errorUnexpected) for detail ?ca=ae6734c4ec53…"</span>,
+    <span class="t-str">"attempts"</span>: <span class="t-warn">2</span>,                                  <span class="t-dim">← acumulado ENTRE corridas, no dentro de una</span>
+    <span class="t-str">"lastAttemptAt"</span>: <span class="t-str">"2026-08-26T05:56:42.115Z"</span>,
+    <span class="t-str">"httpStatus"</span>: <span class="t-warn">503</span>
+  },
+  <span class="t-dim">… 4 entradas más, todas errorUnexpected en la misma fase …</span>
+}</pre>
+  </div>
+  <div class="cap"><b>Captura 11.</b> 5 fallos sobre 123 fichas (4 %), todos del mismo tipo y todos reintentables con <code>npm run retry-failed</code>. Un éxito posterior borra la entrada.</div>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>output/scraper.log — descargas de PDF</span></div>
+<pre><span class="t-dim">+107.3s</span> <span class="t-ok">INFO </span> PDF pdfs\BR-TRF5-0006273-97.1992.4.05.0000\…_6052785_2023-09-15_Decisao.pdf <span class="t-str">(21562 B)</span>
+<span class="t-dim">+108.9s</span> <span class="t-ok">INFO </span> PDF pdfs\BR-TRF5-0006273-97.1992.4.05.0000\…_6052808_2023-06-30_CUMSENFA8-RN_077_Inteiro_Teor_do_Acordao…pdf <span class="t-str">(232371 B)</span>
+<span class="t-dim">+110.0s</span> <span class="t-ok">INFO </span> PDF pdfs\BR-TRF5-0006273-97.1992.4.05.0000\…_6052692_2023-06-30_CUMSENFA8-RN_027_AR_ref._of._2465…pdf <span class="t-str">(245706 B)</span>
+<span class="t-dim">+111.3s</span> <span class="t-ok">INFO </span> PDF pdfs\BR-TRF5-0006273-97.1992.4.05.0000\…_6052700_2023-06-30_CUMSENFA8-RN_055_Despacho_-_Oficio…pdf <span class="t-str">(123563 B)</span></pre>
+  </div>
+  <div class="cap"><b>Captura 12.</b> Una descarga cada ~1,3 s: es la pausa de cortesía (700 ms + hasta 300 ms de jitter) más el tiempo del servidor. Nombres descriptivos, carpeta por proceso.</div>
+
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>output/state.json — el punto de reanudación</span></div>
+<pre>{
+  <span class="t-str">"completedRanges"</span>: [ { <span class="t-str">"from"</span>: <span class="t-str">"1985-01-01"</span>, <span class="t-str">"to"</span>: <span class="t-str">"2020-06-11"</span> } ],
+  <span class="t-str">"saturatedDays"</span>: [ {
+      <span class="t-str">"day"</span>: <span class="t-str">"2019-12-20"</span>, <span class="t-str">"classSplitDone"</span>: <span class="t-warn">true</span>,
+      <span class="t-str">"note"</span>: <span class="t-str">"all classes seen in the response are covered; classes hidden past the cap cannot be queried"</span>
+  } ],
+  <span class="t-str">"updatedAt"</span>: <span class="t-str">"2026-08-26T05:44:15.034Z"</span>,
+  <span class="t-str">"measuredTotal"</span>: <span class="t-warn">106763</span>,
+  <span class="t-str">"measuredAt"</span>: <span class="t-str">"2026-08-26T05:19:13.644Z"</span>
+}</pre>
+  </div>
+  <div class="cap"><b>Captura 13.</b> 35 años de rangos fusionados en un solo intervalo cerrado: <code>mergeRanges()</code> coalesce los adyacentes, así que el estado no crece sin control. El día saturado queda documentado con su motivo.</div>
+</section>
+<!-- ============================ 10 ============================ -->
+<section class="sheet" id="s10">
+  <h2>10 · Banco de preguntas de entrevista</h2>
+  <p class="lede">Cada pregunta trae <b>respuesta corta</b> (lo que dices en 20 segundos) y <b>sustento</b>
+  (lo que sacas si te piden detalle). Las preguntas 1 a 7 son las que ya sabes que van a caer.</p>
+
+  <div class="q" id="b1">
+    <div class="head"><span class="num">1</span>¿Cómo escalaste los intentos?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> exponencial con jitter completo — 2 s · 2ⁿ, techo de 120 s,
+      3 intentos por elemento — pero con tres excepciones que <b>no</b> siguen esa curva:
+      <code>Retry-After</code> del servidor manda siempre, el bloqueo del WAF tiene una pausa fija de 90 s y
+      la página de error del portal tiene 5 s. Y los números no son por defecto: los bajé con la evidencia
+      de la corrida.</div>
+
+      <h4>Sustento</h4>
+      <ul>
+        <li><b>Presupuesto por elemento, no global.</b> Cada búsqueda, cada ficha y cada documento tiene su
+          propio <code>withRetry</code>. Un proceso roto no consume los intentos de los demás.</li>
+        <li><b>La curva:</b> <code>base · 2^(n-1)</code> con techo, y luego jitter completo
+          (<code>capped/2 + azar·capped/2</code>). Sin jitter, todo lo que falla junto reintenta junto.</li>
+        <li><b>Jerarquía de prioridades:</b> instrucción explícita del servidor (<code>Retry-After</code>,
+          con tope de cordura de 15 min) &gt; pausa específica del tipo de bloqueo &gt; curva exponencial.</li>
+        <li><b>Cómo llegué a 3 intentos.</b> Empecé en 5 con 20 s de pausa para
+          <code>errorUnexpected.seam</code>. Al medirlo vi que ese error es <b>determinista por proceso</b>:
+          el mismo 302 en sesión nueva 15 minutos después, con los procesos vecinos funcionando. No es rate
+          limiting, es un proceso que ese endpoint no sabe servir. Con 5 intentos × 20 s, cada proceso roto
+          bloqueaba 99 s de reloj para nada. Lo bajé a <b>3 intentos</b> (efecto ya medido: 43 s en vez de
+          99 s) y la pausa de 20 s a <b>5 s</b>, que sigue cubriendo un agotamiento de pool genuinamente
+          transitorio. <b>El 429 conserva su curva completa</b>, que es donde la espera larga sí sirve.</li>
+        <li><b>Cuando se agotan:</b> se anota en <code>failed.json</code> con el contador acumulado
+          <b>entre corridas</b> y la corrida sigue. <code>npm run retry-failed</code> los reprocesa después.</li>
+      </ul>
+      <p><span class="tag live">evidencia</span> Captura 10: la misma ficha, 5 intentos / 99 s antes, 3 intentos / 43 s después.
+      <span class="tag test">tests</span> <code>retry.test.ts</code> fija el calendario, el <code>Retry-After</code>, el techo y el agotamiento.</p>
+    </div>
+  </div>
+
+  <div class="q" id="b2">
+    <div class="head"><span class="num">2</span>¿Qué aplica cuando la fuente está rota?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> depende de <b>qué</b> se rompió. Clasifico el fallo antes de
+      reaccionar y hay cuatro reacciones distintas: esperar, reabrir sesión, marcar fatal, o marcar
+      <b>hueco explícito</b>. Lo único que nunca hago es dar por bueno un resultado incompleto.</div>
+
+      <h4>Sustento — el árbol de decisión completo</h4>
+      <table>
+        <thead><tr><th style="width:34%">Cómo está rota</th><th>Qué aplico</th></tr></thead>
+        <tbody>
+          <tr><td>Sobrecargada (429, 5xx, corte de red)</td><td>Esperar. Backoff exponencial, <code>Retry-After</code> si lo manda.</td></tr>
+          <tr><td>Me bloqueó el WAF (200 disfrazado)</td><td>Pausa larga de 90 s + <b>sesión nueva</b>. Insistir rápido convierte el bloqueo blando en duro.</td></tr>
+          <tr><td>Sesión/vista caducada</td><td>Reabrir sesión y repetir. Es recuperable y barato.</td></tr>
+          <tr><td>Un proceso concreto que el portal no sabe servir (<code>errorUnexpected.seam</code>)</td><td>3 intentos cortos, luego <code>failed.json</code> y seguir. Insistir no lo arregla.</td></tr>
+          <tr><td>Me devuelve HTML donde iba un PDF</td><td>No guardar nada. <code>InvalidDownloadError</code> → el documento queda <code>failed</code>, no queda un <code>.pdf</code> corrupto en disco.</td></tr>
+          <tr><td>404 / 403</td><td>Fatal, sin reintento. El servidor ya respondió.</td></tr>
+          <tr><td><b>Cambió el HTML</b> y el parser no reconoce la página</td><td><code>UnexpectedStructureError</code>, <b>nunca reintentado</b>, con el detalle en el mensaje. Es un fallo de código, no de red: reintentar solo oculta el problema.</td></tr>
+          <tr><td>Respondió, pero con un mensaje en vez de resultados</td><td>El rango <b>no se marca completado</b> y se anota. Es el caso más peligroso: un 200 perfectamente válido que dejaría un hueco permanente.</td></tr>
+          <tr><td>Un día tiene más procesos de los que la interfaz deja ver</td><td><code>state.json.saturatedDays</code> con la nota del motivo: cobertura parcial <b>declarada</b>.</td></tr>
+          <tr><td>Mi propio estado está corrupto (<code>state.json</code> ilegible)</td><td>Apartarlo con marca de tiempo y <b>abortar</b>. Empezar de cero en silencio perdería el punto de reanudación y luego sobrescribiría la evidencia.</td></tr>
+        </tbody>
+      </table>
+      <p><b>El principio:</b> un hueco explícito se puede reintentar; un hueco silencioso se convierte en
+      datos incorrectos que nadie detecta. Todo el diseño de errores sale de ahí.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sheet">
+  <div class="q" id="b3">
+    <div class="head"><span class="num">3</span>¿Cómo definiste el volumen de la fuente?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> lo <b>medí</b>, no lo estimé. Con un <b>test en seco y en
+      frío, sin ingesta</b>: una sola petición al arrancar, antes de guardar un solo registro, que fuerza al
+      portal a declarar el total. Resultado: <b>106.763 procesos</b>. Todo el diseño de la fase 1 sale de
+      ese número.</div>
+
+      <h4>Sustento — por qué hizo falta un truco</h4>
+      <ol>
+        <li>El portal <b>no publica</b> su total: toda consulta filtrada devuelve como máximo 30 filas y el
+          pie anuncia <code>min(total, 30)</code>. El paginador se renderiza vacío. Preguntando de forma
+          normal nunca ves más de «30 resultados encontrados».</li>
+        <li>Una búsqueda sin criterios la rechaza la validación: «Pelo menos um dos critérios de pesquisa
+          deve ser informado».</li>
+        <li>La grieta: una fecha <b>sintácticamente válida pero inexistente</b>, <code>31/02/2000</code>,
+          pasa la validación de «al menos un criterio» y el conversor de JSF la descarta. La consulta corre
+          <b>sin filtro</b> y el pie anuncia el total real del corpus.</li>
+      </ol>
+
+      <h4>Por qué es «en frío» y «sin ingesta»</h4>
+      <ul>
+        <li><b>En frío:</b> es la primera búsqueda de la corrida, con la sesión recién abierta y con cero
+          procesos almacenados. En el log ocurre en el segundo 8,8 (Captura 2).</li>
+        <li><b>Sin ingesta:</b> de esa respuesta <b>solo se lee el número del pie</b>. Ninguna de sus 30
+          filas se guarda. El código lo dice literalmente: <i>«Purely informational»</i>. No contamina el
+          corpus con filas de una consulta que no corresponde a ningún rango.</li>
+        <li><b>Coste: 1 petición.</b> Se cachea en <code>state.json</code> con su marca de tiempo y solo se
+          vuelve a medir si tiene más de 24 horas.</li>
+      </ul>
+
+      <h4>Para qué sirve el número, más allá de la cifra</h4>
+      <ul>
+        <li>Es el <b>denominador del progreso</b>: <code>npm run status</code> dice
+          <code>10062 of 106763 announced by the portal</code>. Sin él, «llevo 10.000» no significa nada.</li>
+        <li>Dimensiona la arquitectura: 106.763 registros de decenas de KB es lo que <b>descarta</b> el JSON
+          monolítico y obliga a un fichero por proceso (sección 8.1).</li>
+        <li>Permite estimar el coste de la corrida completa antes de lanzarla (pregunta 11).</li>
+      </ul>
+      <div class="box warn">
+        <span class="lbl">Si te preguntan «¿y si ese número miente?»</span>
+        Es un límite superior anunciado por el propio portal, no una verdad auditada. Por eso la cobertura
+        <b>no</b> se demuestra con él: se demuestra con <code>state.json.completedRanges</code>, que es el
+        registro de qué intervalos de fecha se cerraron por debajo del tope, más
+        <code>saturatedDays</code>, que es la lista explícita de dónde la interfaz pública no deja llegar.
+        El total medido es el contraste, no la prueba.
+      </div>
+    </div>
+  </div>
+
+  <div class="q" id="b4">
+    <div class="head"><span class="num">4</span>¿Validaste que es un PDF? ¿Abriste la fuente a mano?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> sí a las dos. Valido con <b>tres comprobaciones</b>
+      (status, firma <code>%PDF-</code> en los primeros bytes, tamaño mínimo) y escribo a
+      <code>.part</code> antes de renombrar. Y sí: recorrí el portal a mano petición por petición antes de
+      escribir el scraper — el protocolo está documentado en <code>docs/protocolo.md</code> y las respuestas
+      reales están versionadas como fixtures de los tests.</div>
+
+      <h4>La validación</h4>
+      <ul>
+        <li><b>No me fío del content-type.</b> Un servidor puede mandar <code>application/pdf</code> y
+          devolver una página de error. Los bytes no mienten: compruebo <code>%PDF-</code> en los primeros 5.
+          El content-type solo lo uso para redactar un error legible.</li>
+        <li><b>Tamaño mínimo</b> de 200 B: descarta respuestas vacías o truncadas.</li>
+        <li><b>Escritura <code>.part</code> + rename.</b> Una caída a mitad de escritura nunca deja un
+          fichero con extensión <code>.pdf</code> y contenido incompleto. El rename es atómico.</li>
+        <li>Si algo falla, el documento queda <code>status: "failed"</code> con el motivo y se anota en
+          <code>failed.json</code>. <b>Nunca se guarda basura con extensión de PDF.</b></li>
+      </ul>
+      <p><span class="tag live">evidencia</span> Captura 6: los 11 PDF en disco empiezan por <code>%PDF-</code>, entre 3 KB y 245 KB.</p>
+
+      <h4>Abrir la fuente a mano</h4>
+      <ul>
+        <li>Todo el protocolo se capturó en vivo el 2026-08-25/26 y está escrito petición a petición en
+          <code>docs/protocolo.md</code>: cuerpos de POST, cabeceras, redirecciones y respuestas.
+          Lo no verificado está marcado como tal — por ejemplo <code>reportPDF.seam</code> («Imprimir»,
+          expediente completo), que devolvió 302 en las dos rutas probadas y por eso no se usa.</li>
+        <li>Hay experimentos deliberados, no solo observación: probé el hash <code>ca</code> de una ficha en
+          una <b>sesión virgen</b> para comprobar que es estable, y el hash de un documento en otra sesión
+          para comprobar que <b>no</b> lo es (da 302). De ahí sale la regla de descargar siempre desde una
+          ficha recién abierta.</li>
+        <li>Las respuestas reales quedaron versionadas como fixtures: <code>landing.html</code> (46 KB),
+          <code>detail-process.html</code> (106 KB), <code>document-viewer.html</code> (52 KB) y
+          <code>search-results.xml</code> (35 KB). No son HTML inventado para que el test pase.</li>
+        <li>La bandera <code>SAVE_RAW=1</code> guarda cada respuesta cruda en <code>output/raw/</code>: es la
+          herramienta con la que se hizo esa exploración y sigue disponible para diagnosticar.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sheet">
+  <div class="q" id="b5">
+    <div class="head"><span class="num">5</span>¿Cómo enfrentaste JSF / JavaServer Faces?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> dejé de tratarlo como un sitio web y lo traté como un
+      <b>protocolo con estado</b>. JSF 1.2 no navega por URL: cada acción es un POST del formulario completo
+      con el <code>ViewState</code> vigente, y la respuesta es un XML que dice qué fragmentos del DOM
+      reemplazar. Así que mantengo un documento vivo en memoria y lo <b>parcheo igual que haría el
+      navegador</b>.</div>
+
+      <h4>Los cinco obstáculos y cómo se resuelve cada uno</h4>
+      <table>
+        <thead><tr><th style="width:31%">Obstáculo</th><th>Solución</th></tr></thead>
+        <tbody>
+          <tr><td>No hay URL a la que ir</td><td>POST de <b>todo</b> el formulario <code>fPP</code> serializado en orden de documento, más <code>AJAXREQUEST=_viewRoot</code>, el control «pulsado» y <code>AJAX:EVENTS_COUNT=1</code>.</td></tr>
+          <tr><td>El estado vive en el servidor</td><td><code>javax.faces.ViewState</code> se lee de la página, viaja en cada POST y se refresca desde <code>#ajax-view-state</code> de cada respuesta. Si expira: <code>SessionExpiredError</code> → sesión nueva.</td></tr>
+          <tr><td>La respuesta no es una página</td><td>Es XML A4J con <code>&lt;meta name="Ajax-Update-Ids"&gt;</code>. <code>applyA4jResponse()</code> reemplaza esos ids en el documento vivo (cheerio).</td></tr>
+          <tr><td>Los ids <code>j_id244</code> cambian entre despliegues</td><td><b>Nada</b> se localiza por id completo: todo por <b>sufijo</b> (<code>[id$=":processoEvento"]</code>) y los ids concretos se leen del HTML en tiempo de ejecución.</td></tr>
+          <tr><td>El botón visible no dispara la búsqueda</td><td>Su <code>onclick</code> es <code>return executarReCaptcha();;A4J.AJAX.Submit(…)</code>: el <code>return</code> corta antes. El submit real es el <code>a4j:jsFunction</code> <code>executarPesquisa</code>, cuyo control se extrae de la página en cada sesión.</td></tr>
+        </tbody>
+      </table>
+      <p><b>Extras del mismo mundo:</b> HTML en ISO-8859-1 y XML en UTF-8 (decodificación por charset
+      declarado); tarro de cookies a mano porque Node no trae uno; y la paginación de movimentações, que es
+      un <code>rich:inputNumberSlider</code> con su propio formulario y su propia región Ajax
+      (<code>containerId</code>), no un paginador.</p>
+      <div class="box ok">
+        <span class="lbl">La frase que remata la respuesta</span>
+        «El reCAPTCHA está en la página pero compilado a <code>if (false)</code>: no hay captcha que resolver
+        ni que evadir. Lo difícil de este portal no era la protección, era el protocolo.»
+      </div>
+    </div>
+  </div>
+
+  <div class="q" id="b6">
+    <div class="head"><span class="num">6</span>¿Por qué ese id? ¿Y si colisiona? ¿Cómo evitas duplicados?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> el id es
+      <code>PAÍS-FUENTE-&lt;clave única de la fuente&gt;</code> →
+      <code>BR-TRF5-0800041-77.2020.4.05.8302</code>. La clave es el <b>número CNJ</b>, que ya es único a
+      nivel nacional y lo asigna el propio poder judicial; no invento un id, adopto el que la fuente ya
+      garantiza. Y no dependo de que no colisione: el almacenamiento <b>fusiona</b> por id en vez de
+      sobrescribir.</div>
+
+      <h4>Por qué esa forma</h4>
+      <ul>
+        <li><b>Es estable entre corridas.</b> Un id derivado de la posición en la lista, o un autoincremento,
+          cambiaría al reordenarse los resultados y rompería la reanudación.</li>
+        <li><b>Es legible y rastreable.</b> Con el id en la mano se reconstruye la URL de la ficha y se busca
+          el proceso en cualquier sistema judicial brasileño.</li>
+        <li><b>El prefijo separa espacios de nombres.</b> <code>BR-TRF5</code> es <b>la fuente donde se
+          extrajo</b>, no el tribunal que emitió el número. En el corpus hay procesos cuyo CNJ pertenece a
+          tribunales estaduales (<code>…8.15.0351</code> es TJPB, <code>…8.20.0124</code> es TJRN) y aun así
+          se listan en la consulta del TRF5. Si mañana se raspa otro tribunal, sus registros no chocan con
+          estos, y que el mismo caso aparezca en dos fuentes es información, no un duplicado.</li>
+        <li><b>Los documentos heredan:</b> <code>&lt;id del proceso&gt;-DOC-&lt;idProcessoDocumento&gt;</code>,
+          usando el id interno del portal.</li>
+      </ul>
+
+      <h4>¿Y si el número no existe?</h4>
+      <p>Los procesos en <b>segredo de justiça</b> se listan sin número. En vez de saltarlos o de inventar un
+      id, uso la clave con la que el propio portal los abre: <code>BR-TRF5-ca-&lt;hash 48 hex&gt;</code>,
+      verificado estable entre sesiones. Se pierde la legibilidad, no la identidad.</p>
+
+      <h4>¿Qué pasa si colisiona?</h4>
+      <ul>
+        <li><b>Un id repetido no destruye nada:</b> <code>upsert()</code> lee el registro existente y
+          <b>fusiona</b>. Los campos nuevos definidos ganan, pero <code>firstSeenAt</code> se conserva, los
+          documentos se fusionan por su propio id y <b>una descarga completada nunca se degrada</b> a
+          pendiente.</li>
+        <li><b>El riesgo real que sí existe</b> y conviene decir tú mismo: si un proceso se lista primero sin
+          número (segredo) y después con número, generaría <b>dos</b> ids para el mismo proceso. Es un
+          duplicado, no una colisión: el hash <code>ca</code> permitiría detectarlo. No lo he observado en la
+          muestra y hoy no está resuelto.</li>
+        <li>El caso inverso —dos procesos distintos con el mismo CNJ— exigiría que el poder judicial
+          brasileño emitiera un número duplicado. Si ocurriera, el resultado sería un registro fusionado con
+          dos historiales mezclados, no una pérdida silenciosa.</li>
+      </ul>
+
+      <h4>Cómo evito duplicados</h4>
+      <ol>
+        <li><b>Por construcción:</b> el corpus es un mapa indexado por id, no una lista. Un fichero por id
+          en <code>output/processes/</code>, más <code>index.json</code>.</li>
+        <li><b>Los solapes son inevitables y esperados.</b> La partición binaria vuelve a listar procesos ya
+          vistos; en el log se ve como <code>30 rows (0 new)</code>. <code>upsert()</code> devuelve
+          <code>false</code> y el contador de «nuevos» no se mueve.</li>
+        <li><b>Re-listar no deshace trabajo:</b> se conservan <code>detailFetched</code> y
+          <code>foundInRange</code> del registro existente. Si no, cada solape forzaría volver a bajar la
+          ficha completa.</li>
+        <li><b>El shard manda sobre el índice:</b> <code>get()</code> lee del disco aunque el índice en
+          memoria no conozca el id. Así un índice atrasado nunca provoca que se sobrescriba un shard en vez
+          de fusionarlo.</li>
+      </ol>
+      <p><span class="tag test">tests</span> <code>store.test.ts</code> fija que una descarga completada nunca se degrada y que un
+      éxito posterior borra el error anterior. <code>text.test.ts</code> fija la construcción de los ids.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sheet">
+  <div class="q" id="b7">
+    <div class="head"><span class="num">7</span>Enséñame los reintentos en el código</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> están en un solo sitio,
+      <code>src/util/retry.ts</code>. Tres piezas: una <b>taxonomía</b> (<code>isRetryable</code>), una
+      <b>política</b> (<code>backoffMs</code>) y un <b>bucle</b> (<code>withRetry</code>). El resto del
+      código no decide si reintentar: solo etiqueta el error y pasa un <code>label</code> y un hook de
+      recuperación.</div>
+      <h4>Los tres sitios donde se usa, y qué cambia en cada uno</h4>
+      <table>
+        <thead><tr><th style="width:22%">Llamada</th><th style="width:30%">Hook de recuperación</th><th>Particularidad</th></tr></thead>
+        <tbody>
+          <tr><td><code>search &lt;rango&gt;</code></td><td>reabrir sesión solo si <code>SessionExpiredError</code> o <code>WafBlockedError</code></td><td>La sesión se recicla también si superó las 400 peticiones.</td></tr>
+          <tr><td><code>detail &lt;id&gt;</code></td><td>igual</td><td>Al agotarse, el proceso se deja para <code>retry-failed</code> y no se reintenta en cada reanudación.</td></tr>
+          <tr><td><code>document &lt;id&gt;</code></td><td>igual, y además <b>relee los enlaces</b> de una ficha nueva antes de repetir</td><td>Los enlaces de documento caducan con la sesión: reintentar con el enlace viejo está condenado.</td></tr>
+          <tr><td><code>movements p&lt;N&gt;</code></td><td>—</td><td><code>retryIf</code> <b>veta</b> el reintento ante sesión expirada: la página N necesita el ViewState que acaba de morir.</td></tr>
+        </tbody>
+      </table>
+      <p>Es la parte más testeada del proyecto: <b>15 de los 56 tests</b> están en
+      <code>retry.test.ts</code>, con timers falsos para que las esperas de segundos se completen al
+      instante. Cubren clasificación, calendario exponencial, <code>Retry-After</code>, techo, agotamiento y
+      el caso del hook de recuperación que falla él mismo.</p>
+    </div>
+  </div>
+
+  <div class="q" id="b8">
+    <div class="head"><span class="num">8</span>¿Cómo detectas y manejas el 429 en concreto?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> lo detecto en la capa HTTP, antes de que nadie parsee nada:
+      <code>classify()</code> convierte 429/5xx/408 en <code>HttpRetryableError</code> con el
+      <code>Retry-After</code> ya parseado. De ahí en adelante nadie vuelve a mirar un status.</div>
+      <ul>
+        <li><code>parseRetryAfter()</code> entiende las dos formas del estándar: segundos
+          (<code>Retry-After: 120</code>) y fecha HTTP.</li>
+        <li>Si el servidor lo manda, <b>manda él</b>, incluso por encima del techo de 120 s del backoff
+          propio; solo hay un tope de cordura de 15 minutos para valores absurdos.</li>
+        <li>Prevención, no solo reacción: pausa mínima de 700 ms + hasta 300 ms de jitter <b>entre todas</b>
+          las peticiones, una sola conexión secuencial, sin concurrencia, y reciclado de sesión cada 400
+          peticiones.</li>
+        <li>En la corrida real, con esos delays, <b>no apareció un solo 429</b>. Los fallos observados fueron
+          todos <code>errorUnexpected.seam</code>, que es otra cosa: el propio portal fallando en procesos
+          concretos.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="q" id="b9">
+    <div class="head"><span class="num">9</span>¿Cómo sabes que cubriste todo el sitio?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> por construcción de la partición, no por confianza. Un
+      rango solo se marca completado cuando su consulta devolvió <b>menos</b> que el tope, lo que significa
+      que el portal mostró todas sus filas. Lo que no se puede probar, se declara.</div>
+      <ul>
+        <li><code>state.json.completedRanges</code> es la prueba positiva: intervalos cerrados por debajo del
+          tope, fusionados por <code>mergeRanges()</code> para que no crezcan sin control.</li>
+        <li><code>state.json.saturatedDays</code> es la prueba negativa: dónde la interfaz pública no deja
+          llegar. En 35 años de corpus apareció <b>uno</b>, y aun así quedó cubierto por clase judicial.</li>
+        <li>El total medido (106.763) es el <b>contraste</b>, no la prueba: es lo que el portal anuncia.</li>
+        <li>Una consulta que devolvió un mensaje en vez de una tabla nunca completa su rango, así que un
+          fallo transitorio no puede convertirse en un hueco permanente.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="q" id="b10">
+    <div class="head"><span class="num">10</span>¿Por qué sin navegador?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> porque lo pedía el enunciado, y porque una vez entendido el
+      protocolo el navegador no aportaba nada: coste enorme por proceso y ninguna capacidad extra.</div>
+      <ul>
+        <li>Cada ficha es <b>1 GET</b> más algunos POST de paginación. Un navegador ejecutaría además todo el
+          JavaScript, las hojas de estilo y las imágenes de una página de ~100 KB.</li>
+        <li>El único JavaScript que importa —<code>executarPesquisa</code>, los parámetros del slider— se lee
+          como texto con una expresión regular. No hace falta ejecutarlo, hace falta entenderlo.</li>
+        <li>Sin captcha operativo, la única razón fuerte para un navegador desaparece.</li>
+        <li>A escala de 106.763 procesos, un navegador por proceso multiplica el tiempo y la memoria por un
+          orden de magnitud. La cortesía con el servidor ya impone el ritmo; no hace falta añadir peso propio.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sheet">
+  <div class="q" id="b11">
+    <div class="head"><span class="num">11</span>¿Cuánto tarda el corpus completo? ¿Por qué no paralelizas?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> con los delays por defecto, el descubrimiento son unas
+      2–3 horas y el corpus entero de fichas + PDF son <b>semanas</b> de reloj. Es una decisión, no una
+      limitación: el cuello de botella es la cortesía con el servidor, y paralelizar solo lo convertiría en
+      un problema de rate limiting.</div>
+      <table>
+        <thead><tr><th style="width:34%">Medición real</th><th>Extrapolación al corpus</th></tr></thead>
+        <tbody>
+          <tr><td>~1,1 s por búsqueda; ~8 procesos/s en descubrimiento</td><td>10.000 procesos en ~20 min; el corpus completo en 2–3 h (≈4.000–8.000 búsquedas)</td></tr>
+          <tr><td>~6,7 s por ficha completa (incluye paginar movimentações)</td><td>106.763 fichas ≈ <b>8 días</b></td></tr>
+          <tr><td>~9 documentos por proceso, ~1,3 s por PDF</td><td>≈960.000 PDF ≈ <b>14 días</b> adicionales</td></tr>
+        </tbody>
+      </table>
+      <p><b>Por qué un solo hilo:</b> (1) el enunciado pide delays entre peticiones; (2) el portal está tras
+      un WAF que reacciona a patrones agresivos; (3) el <code>Store</code> es de un solo proceso —
+      <code>index.json</code> y <code>state.json</code> son «último que escribe gana» — así que dos corridas
+      sobre el mismo <code>output/</code> se corromperían mutuamente. <b>Cómo lo paralelizaría si hiciera
+      falta:</b> particionar por rango de fechas entre trabajadores con <code>OUTPUT_DIR</code> distinto y
+      fusionar por id al final, que es exactamente lo que permite tener ids estables.</p>
+    </div>
+  </div>
+
+  <div class="q" id="b12">
+    <div class="head"><span class="num">12</span>¿Qué pasa si el portal cambia el HTML?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> falla ruidosamente y en un solo sitio. Los parsers lanzan
+      <code>UnexpectedStructureError</code>, que <b>nunca se reintenta</b>, y todo el conocimiento del
+      portal está aislado en <code>src/pje/</code>.</div>
+      <ul>
+        <li>Selectores <b>por sufijo</b>, no por id completo: sobrevive a que cambien los <code>j_idNNN</code>,
+          que es el cambio más frecuente.</li>
+        <li>Los ids volátiles se leen en tiempo de ejecución: el control de búsqueda, el del slider, el
+          <code>containerId</code>.</li>
+        <li>Los mensajes de error dicen <b>qué</b> no encontraron
+          (<code>form "fPP" not found</code>, <code>search response did not render the results grid
+          (updated: …)</code>), así que el diagnóstico no empieza de cero.</li>
+        <li>Las fixtures son capturas reales: cuando el portal cambie, se recaptura y el test dice
+          exactamente qué se rompió.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="q" id="b13">
+    <div class="head"><span class="num">13</span>¿Cómo pruebas un scraper sin depender de la red?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> 56 tests, 8 suites, <b>cero red</b>, sobre fixtures que son
+      respuestas reales del portal guardadas tal cual.</div>
+      <ul>
+        <li><b>Parsers</b> contra HTML real de 46–106 KB: tope de 30 filas, banner de desborde, segredo de
+          justiça sin número, partes con abogados indentados, slider de movimentações, las dos rutas de
+          descarga.</li>
+        <li><b>Protocolo A4J</b>: serialización del formulario, construcción del cuerpo, parcheo del DOM con
+          la respuesta XML.</li>
+        <li><b>Política de reintentos</b> con timers falsos: las esperas de 30 s se completan al instante.</li>
+        <li><b>Funciones puras</b>: fechas, <code>splitRange</code>, ids, nombres de fichero, fusión de rangos
+          y de documentos, rename con reintento.</li>
+        <li>Lo que <b>no</b> se puede testear offline (que el portal siga respondiendo como el 2026-08-25) se
+          cubre con la corrida en vivo y su log.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="q" id="b14">
+    <div class="head"><span class="num">14</span>¿Qué NO cubre tu solución?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> cuatro huecos, todos conocidos y documentados. Decirlos tú
+      antes de que los encuentren vale más que fingir que no existen.</div>
+      <ol>
+        <li><b>Días saturados.</b> Si un mismo día + clase judicial supera las 30 filas, ese resto es
+          inalcanzable <b>por la interfaz pública</b>. Queda anotado en <code>state.json</code>.</li>
+        <li><b>Partes paginadas.</b> Las tres tablas de partes tienen su propio <code>dataScroller</code>. Se
+          lee la página que la ficha renderiza; un proceso con más partes que una página quedaría truncado.
+          No se ha observado en la muestra (las movimentações sí se paginan completas).</li>
+        <li><b>Documentos sin ruta pública</b> (enlace <code>about:blank</code>): se registran como
+          <code>unavailable</code>, que es distinto de <code>failed</code>.</li>
+        <li><b><code>reportPDF.seam</code></b> (expediente completo, botón «Imprimir») devuelve 302 fuera del
+          flujo del navegador. No se usa: los PDF se obtienen documento a documento.</li>
+      </ol>
+      <p>Y el detalle de la sección 8.3: <code>npm run status</code> puede quedarse corto en sus contadores
+      mientras hay una corrida viva, porque lee <code>index.json</code> y no los shards.</p>
+    </div>
+  </div>
+
+  <div class="q" id="b15">
+    <div class="head"><span class="num">15</span>¿Y el alcance legal / ético?</div>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> la Consulta Pública es de acceso libre y sin autenticación,
+      el organizador del desafío declara que ya posee esta información y que el scraper es una prueba
+      técnica. No hay credenciales, no hay evasión de protección y los delays son conservadores por defecto.</div>
+      <ul>
+        <li>No se resuelve ni se evade ningún captcha: está desactivado en el servidor.</li>
+        <li>No se falsifican credenciales ni se accede a nada tras un login.</li>
+        <li><code>output/</code> está en <code>.gitignore</code>; solo se versiona una muestra de PDF como
+          evidencia de la descarga de punta a punta —resoluciones publicadas por el propio tribunal para
+          consulta pública—. El resto de los datos no se sube.</li>
+        <li>Los delays y el reciclado de sesión existen para no degradar el servicio de un portal judicial.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+<!-- ============================ 11 ============================ -->
+<section class="sheet" id="s11">
+  <h2>11 · Chuleta final</h2>
+  <p class="lede">Lo que hay que tener en la cabeza cinco minutos antes de entrar.</p>
+
+  <h3>Las cifras</h3>
+  <table>
+    <thead><tr><th style="width:38%">Dato</th><th>Valor</th></tr></thead>
+    <tbody>
+      <tr><td>Corpus anunciado por el portal</td><td><b>106.763</b> procesos (medido 2026-08-26, 1 petición, sin ingesta)</td></tr>
+      <tr><td>Tope de filas por consulta</td><td><b>30</b>, y el paginador se renderiza vacío</td></tr>
+      <tr><td>Movimentações por página</td><td><b>15</b>, paginadas con un <code>rich:inputNumberSlider</code></td></tr>
+      <tr><td>Líneas de TypeScript / tests</td><td><b>3.432</b> líneas · <b>56</b> tests · <b>8</b> suites · sin red</td></tr>
+      <tr><td>Dependencias de ejecución</td><td><b>2</b>: <code>axios</code> y <code>cheerio</code></td></tr>
+      <tr><td>Intentos por elemento</td><td><b>3</b> (<code>MAX_ATTEMPTS</code>)</td></tr>
+      <tr><td>Backoff</td><td>2 s · 2ⁿ con jitter completo, techo <b>120 s</b>; <code>Retry-After</code> manda (tope 15 min)</td></tr>
+      <tr><td>Pausa del WAF / de <code>errorUnexpected</code></td><td><b>90 s</b> / <b>5 s</b></td></tr>
+      <tr><td>Cortesía entre peticiones</td><td><b>700 ms + hasta 300 ms</b> de jitter; sesión reciclada cada <b>400</b> peticiones</td></tr>
+      <tr><td>Ritmo medido</td><td>~1,1 s por búsqueda · ~8 procesos/s descubriendo · ~6,7 s por ficha completa</td></tr>
+      <tr><td>Estado de la corrida en la guía</td><td>10.062 procesos · 123 fichas · 1.101 documentos · 11 PDF · 5 fallos</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Los comandos</h3>
+  <div class="term">
+    <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>PowerShell</span></div>
+<pre><span class="t-dim"># las dos fases, en orden — reanudable, se puede cortar con Ctrl+C</span>
+<span class="t-cmd">npm run all</span>
+
+<span class="t-dim"># fases por separado</span>
+<span class="t-cmd">npm run discover</span>          <span class="t-dim">fase 1: enumera particionando por fecha</span>
+<span class="t-cmd">npm run download</span>          <span class="t-dim">fase 2: fichas completas + PDFs</span>
+
+<span class="t-dim"># operación</span>
+<span class="t-cmd">npm run status</span>            <span class="t-dim">progreso desde los ficheros de salida, SIN red</span>
+<span class="t-cmd">npm run retry-failed</span>      <span class="t-dim">reprocesa lo anotado en output/failed.json</span>
+<span class="t-cmd">npm test</span>                  <span class="t-dim">56 tests offline con fixtures reales</span>
+<span class="t-cmd">npm run typecheck</span>         <span class="t-dim">tsc --noEmit sobre src y sobre los tests</span>
+
+<span class="t-dim"># demostración acotada de ~2 minutos (bash)</span>
+<span class="t-cmd">DATE_FROM=1990-01-01 DATE_TO=1994-12-31 MAX_PROCESSES=3 MAX_DOCUMENTS=4 npm run all</span>
+
+<span class="t-dim"># lo mismo en PowerShell: las variables se fijan antes</span>
+<span class="t-cmd">$env:MAX_DOCUMENTS='4'; npm run all</span>
+
+<span class="t-dim"># pasada de solo fichas, sin descargar PDFs</span>
+<span class="t-cmd">$env:SKIP_DOWNLOADS='1'; npm run download</span></pre>
+  </div>
+
+  <h3>Las variables que más se usan</h3>
+  <table>
+    <thead><tr><th style="width:26%">Variable</th><th style="width:14%">Por defecto</th><th>Efecto</th></tr></thead>
+    <tbody>
+      <tr><td><code>DATE_FROM</code> / <code>DATE_TO</code></td><td>1985-01-01 / hoy</td><td>Ventana que particiona la fase 1</td></tr>
+      <tr><td><code>MAX_DISCOVERED</code></td><td>0 = sin límite</td><td>Detiene la fase 1 al tener N procesos almacenados</td></tr>
+      <tr><td><code>MAX_PROCESSES</code> / <code>MAX_DOCUMENTS</code></td><td>0 / 0</td><td>Topes de la fase 2 por ejecución</td></tr>
+      <tr><td><code>SKIP_DOWNLOADS</code></td><td>off</td><td>Fase 2 sin PDFs: fichas completas, descargas para después</td></tr>
+      <tr><td><code>MAX_ATTEMPTS</code></td><td>3</td><td>Intentos por petición antes de anotar el fallo y seguir</td></tr>
+      <tr><td><code>MIN_DELAY_MS</code> / <code>JITTER_MS</code></td><td>700 / 300</td><td>Cortesía entre peticiones</td></tr>
+      <tr><td><code>SAVE_RAW</code> / <code>DEBUG</code></td><td>off / off</td><td>Guardar cada respuesta cruda / trazar cada petición</td></tr>
+      <tr><td><code>OUTPUT_DIR</code></td><td><code>output</code></td><td>Carpeta de salida (usar otra para una corrida en paralelo)</td></tr>
+      <tr><td><code>PJE_BASE_URL</code></td><td>pjett.trf5.jus.br</td><td>El mismo PJe corre en otros tribunales</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box bad">
+    <span class="lbl">Precaución operativa</span>
+    El <code>Store</code> es de un solo proceso: <code>index.json</code> y <code>state.json</code> son
+    «último que escribe gana». <b>Nunca lances dos corridas contra el mismo <code>output/</code>.</b>
+    Antes de arrancar, comprueba que no haya un <code>ts-node src/index.ts</code> vivo
+    (<code>Get-Process node</code>). Matar el proceso de golpe es seguro: los shards ya están en disco y
+    <code>reconcileShards()</code> recupera lo que el índice no alcanzó a registrar.
+  </div>
+
+  <h3>Las siete frases para memorizar</h3>
+  <ol>
+    <li><b>Volumen:</b> «Lo medí en frío, sin ingesta: una petición con una fecha inexistente que el
+      conversor descarta, y el portal declara 106.763.»</li>
+    <li><b>Paginación:</b> «No hay paginador. Particiono el espacio de búsqueda por fecha hasta que cada
+      tramo cabe bajo el tope de 30.»</li>
+    <li><b>JSF:</b> «No es un sitio web, es un protocolo con estado. Mantengo un documento vivo y lo parcheo
+      con los fragmentos que devuelve el servidor, igual que el navegador.»</li>
+    <li><b>Reintentos:</b> «Clasifico primero, reacciono después. Exponencial con jitter para lo transitorio,
+      pausa larga y sesión nueva para el WAF, fatal sin reintento para lo que no va a cambiar.»</li>
+    <li><b>Escalado:</b> «Bajé de 5 intentos a 3 porque medí que ese error es determinista por proceso, no
+      rate limiting. El 429 conserva la curva completa.»</li>
+    <li><b>Identidad:</b> «No invento el id: adopto el número CNJ, que ya es único a nivel nacional, con
+      prefijo de fuente. Y no dependo de que no colisione: el store fusiona por id.»</li>
+    <li><b>PDF:</b> «Valido status, firma <code>%PDF-</code> y tamaño, y escribo a <code>.part</code> antes
+      de renombrar. Nunca queda basura con extensión de PDF.»</li>
+  </ol>
+
+  <div class="box">
+    <span class="lbl">Si solo te acuerdas de una cosa</span>
+    <b>Nunca completar algo en silencio.</b> Rango no cerrado si la respuesta no fue una tabla de
+    resultados. <code>detailFetched: false</code> si el historial quedó truncado. Día saturado anotado con su
+    motivo. Documento fallido registrado con su error. Abortar en vez de arrancar de cero si el estado está
+    corrupto. Es la misma decisión repetida en cinco capas, y es lo que separa un scraper que produce datos
+    de uno que produce datos <i>en los que se puede confiar</i>.
+  </div>
+</section>
+
+<!-- ============================ 12 ============================ -->
+<section class="sheet" id="s12">
+  <h2>12 · Las doce preguntas de la conversación</h2>
+  <p class="lede">Las preguntas que salieron al preparar esta guía, en el orden en que las haría alguien
+  que ve el proyecto por primera vez. Cada una trae <b>respuesta corta</b> (20 segundos),
+  <b>sustento</b> y el <b>fragmento real del repositorio</b> que la respalda.</p>
+
+  <div class="box">
+    <span class="lbl">Cómo usar esta sección</span>
+    En pantalla las respuestas están <b>plegadas</b>: lee la pregunta, contéstala en voz alta y
+    <b>solo entonces</b> despliégala. Al imprimir salen todas abiertas, así que el PDF sigue siendo
+    legible de corrido. Donde una pregunta se solapa con el banco de la sección 10, la respuesta enlaza
+    allí en vez de repetirla.
+  </div>
+
+  <details class="qa" id="p1">
+    <summary><span class="num">1</span><span class="txt">¿Cómo llegaste a scrapear la fuente?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> mirando lo que el navegador <b>envía</b>, no lo que la
+      página <b>muestra</b>. Abrí la Consulta Pública con DevTools en la pestaña Network, vi que ninguna
+      acción cambiaba la URL y que todo era <code>POST</code> a <code>listView.seam</code>, y reproduje
+      esas peticiones con HTTP puro hasta que respondieron igual. Ese protocolo quedó escrito en
+      <code>docs/protocolo.md</code> <b>antes</b> de escribir el scraper; el código solo lo implementa
+      capa por capa.</div>
+
+      <h4>Sustento — el orden en que se hizo</h4>
+      <div class="steps">
+        <div class="step"><b><span class="n">1</span>Observar la red</b>
+          <p>DevTools → Network → XHR. Buscar, abrir una ficha y pasar de página de movimentações
+          producen <b>la misma URL</b> y tres POST distintos. Conclusión temprana: no hay URLs que
+          recorrer, hay un protocolo con estado.</p></div>
+        <div class="step"><b><span class="n">2</span>Reproducir a mano</b>
+          <p>Copiar una petición y repetirla desde código hasta obtener la misma respuesta: cookies,
+          <code>javax.faces.ViewState</code>, formulario completo y los marcadores de Ajax4jsf.</p></div>
+        <div class="step"><b><span class="n">3</span>Escribir el protocolo</b>
+          <p><code>docs/protocolo.md</code>: sesión, búsqueda, volumen, ficha, documentos, señales de
+          fallo. Su primera línea fija la regla de honestidad del documento.</p></div>
+        <div class="step"><b><span class="n">4</span>Codificar en capas</b>
+          <p><code>http/</code> transporte, <code>pje/</code> protocolo, <code>crawl/</code> estrategia,
+          <code>storage/</code> disco. Lo que se rompe si el tribunal cambia el HTML queda confinado en
+          <code>pje/</code> y cubierto con fixtures reales.</p></div>
+      </div>
+
+<pre class="code"><span class="c">// docs/protocolo.md — cabecera del documento</span>
+Capturado en vivo el 2026-08-25/26 con HTTP puro (sin navegador). Todo lo que
+está en este documento fue verificado contra el portal real; lo no verificado
+se marca como tal.
+
+<span class="c">// src/pje/a4j.ts — el mismo protocolo, ya en código</span>
+<span class="c"> * El portal nunca navega por URL: cada interacción es un POST del formulario</span>
+<span class="c"> * entero por XMLHttpRequest, y la respuesta es un fragmento XML que lista qué</span>
+<span class="c"> * elementos reemplazar (`&lt;meta name="Ajax-Update-Ids"&gt;`) más el siguiente</span>
+<span class="c"> * `javax.faces.ViewState`. Este módulo reproduce las dos mitades.</span></pre>
+
+      <p class="xref"><b>Más detalle:</b> sección <a href="#s3">3 · El portal por dentro</a> ·
+      banco <a href="#b5">pregunta 5 (JSF)</a> y <a href="#b10">pregunta 10 (por qué sin navegador)</a>.</p>
+    </div>
+  </details>
+
+  <details class="qa" id="p2">
+    <summary><span class="num">2</span><span class="txt">¿Cómo busco el botón en la fuente?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> no busco el botón, busco <b>la función</b>. El botón
+      visible <code>fPP:searchProcessos</code> es un señuelo: su <code>onclick</code> empieza por
+      <code>return</code>, así que el submit que lleva detrás nunca se ejecuta. En el HTML se busca la
+      cadena <code>executarPesquisa=function</code> y de ahí sale el control real
+      (<code>fPP:j_id244</code> en este despliegue), que <b>se lee en cada sesión</b> porque el número
+      cambia entre despliegues.</div>
+
+      <h4>Sustento — las dos cadenas, tal cual están en la página</h4>
+      <div class="term">
+        <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>grep sobre el fixture real del portal — src/__tests__/fixtures/landing.html</span></div>
+<pre><span class="t-dim">PS&gt;</span> <span class="t-cmd">grep -o 'id="fPP:searchProcessos"[^&gt;]*' src/__tests__/fixtures/landing.html</span>
+id=<span class="t-str">"fPP:searchProcessos"</span> name=<span class="t-str">"fPP:searchProcessos"</span>
+  onclick=<span class="t-str">"<span class="t-err">return</span> executarReCaptcha();;A4J.AJAX.Submit('fPP',event,
+    {'similarityGroupingId':'fPP:searchProcessos', …})"</span>          <span class="t-dim">← el return corta aquí</span>
+
+<span class="t-dim">PS&gt;</span> <span class="t-cmd">grep -o 'executarPesquisa=function.\{0,520\}' src/__tests__/fixtures/landing.html</span>
+executarPesquisa=function(){A4J.AJAX.Submit(<span class="t-str">'fPP'</span>,null,{
+  <span class="t-str">'similarityGroupingId'</span>:<span class="t-str">'fPP:j_id244'</span>, <span class="t-str">'actionUrl'</span>:<span class="t-str">'/pjeconsulta/ConsultaPublica/listView.seam'</span>, …,
+  <span class="t-str">'parameters'</span>:{<span class="t-ok">'fPP:j_id244'</span>:<span class="t-ok">'fPP:j_id244'</span>} } )};                <span class="t-dim">← el submit de verdad</span></pre>
+      </div>
+      <div class="cap"><b>Captura 14.</b> Las dos cadenas conviven en la misma página de 46 KB (salida
+      cortada al ancho de la hoja). La de arriba es la que ve el usuario; la de abajo es la que hace la
+      consulta. El fixture es la landing real guardada para los tests, con la sesión redactada, así que
+      este grep se puede repetir sin red.</div>
+
+      <ul>
+        <li><b>Por qué el señuelo no sirve:</b> enviar <code>fPP:searchProcessos</code> devuelve 200 y un
+          A4J válido, pero solo re-renderiza el panel de mensajes. La tabla de resultados no aparece.</li>
+        <li><b>Por qué no se codifica el id:</b> <code>j_idNNN</code> es un contador de JSF. Cambia al
+          redesplegar y cambia entre tribunales. Se localiza por <b>forma</b>, no por valor.</li>
+        <li><b>El criterio de búsqueda:</b> dentro del mapa <code>parameters</code>, el par cuya clave es
+          igual a su valor es el control «pulsado». Eso es lo que devuelve la función.</li>
+        <li><b>Sin CAPTCHA:</b> <code>executarReCaptcha()</code> compila a una rama
+          <code>if (false)</code>; no viaja ningún token en el POST.</li>
+      </ul>
+
+<pre class="code"><span class="c">// src/pje/session.ts</span>
+<span class="k">export function</span> findSearchControl(html: <span class="k">string</span>): [<span class="k">string</span>, <span class="k">string</span>] {
+  <span class="k">const</span> at = html.indexOf(<span class="s">'executarPesquisa=function'</span>);      <span class="c">// ← se busca la función, no el botón</span>
+  <span class="k">if</span> (at &gt;= <span class="n">0</span>) {
+    <span class="k">const</span> pairs = parseA4jParameters(html.slice(at, at + <span class="n">1200</span>));
+    <span class="k">const</span> own = pairs.find(([k, v]) =&gt; k === v);           <span class="c">// clave === valor = control pulsado</span>
+    <span class="k">if</span> (own) <span class="k">return</span> own;
+  }
+  <span class="k">const</span> btn = /id="([^"]*:searchProcessos)"/.exec(html);   <span class="c">// respaldo: el botón visible</span>
+  <span class="k">if</span> (btn) {
+    log.warn(<span class="s">'executarPesquisa not found in the landing page: falling back to the visible search button'</span>);
+    <span class="k">return</span> [btn[<span class="n">1</span>]!, btn[<span class="n">1</span>]!];
+  }
+  <span class="k">throw new</span> UnexpectedStructureError(<span class="s">'search control not found in the landing page'</span>);
+}</pre>
+
+      <p class="xref"><b>Más detalle:</b> sección <a href="#s3">3.2 El botón señuelo</a> ·
+      banco <a href="#b5">pregunta 5</a>.</p>
+    </div>
+  </details>
+</section>
+
+<section class="sheet">
+  <details class="qa" id="p3">
+    <summary><span class="num">3</span><span class="txt">¿Cómo activo el botón?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> no se pulsa nada. Se envía un <code>POST</code> con
+      <b>todo el formulario <code>fPP</code> serializado</b> más el control oculto declarado como si el
+      usuario lo hubiera pulsado. Es exactamente lo que hace el navegador: JSF 1.2 exige el formulario
+      completo de vuelta, y Ajax4jsf añade cuatro marcadores alrededor.</div>
+
+      <h4>Sustento — la forma del cuerpo</h4>
+      <div class="flow">POST /pjeconsulta/ConsultaPublica/listView.seam
+Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+Cookie: JSESSIONID=… ; ROUTER_ID=… ; trf50…
+
+AJAXREQUEST=_viewRoot                 ← marcador de Ajax4jsf
+&amp;fPP=fPP                              ← el formulario se nombra a sí mismo
+&amp;fPP:…dataAutuacaoInicioInputDate=01/01/1990   ← criterios sustituidos
+&amp;fPP:…dataAutuacaoFimInputDate=31/12/1994
+&amp;…                                    ← TODOS los demás campos, en orden de documento
+&amp;javax.faces.ViewState=j_id7
+&amp;fPP:j_id244=fPP:j_id244               ← el control oculto: «esto es lo que se pulsó»
+&amp;AJAX:EVENTS_COUNT=1
+
+→ 200 text/xml  ·  &lt;meta name="Ajax-Update-Ids" content="fPP:processosGridPanel,…"&gt;
+                   &lt;div id="ajax-view-state"&gt; nuevo ViewState &lt;/div&gt;</div>
+
+      <ul>
+        <li><b>Formulario completo, no solo los campos que cambian.</b> JSF reconstruye el árbol de
+          componentes con lo que recibe; enviar de menos es un <code>ValidatorException</code> o una vista
+          incoherente.</li>
+        <li><b>Los campos se localizan por sufijo</b> (<code>:dataAutuacaoInicioInputDate</code>), nunca por
+          el id completo, por el mismo motivo que el control.</li>
+        <li><b>La respuesta se aplica al documento vivo</b> con <code>applyA4jResponse</code>: se
+          reemplazan los fragmentos y se refresca el <code>ViewState</code>, así la siguiente petición
+          parte del estado real.</li>
+        <li><b>Y se comprueba qué se re-renderizó.</b> Si la respuesta no actualizó la rejilla de
+          resultados, no se parsea: se lanza error. Una respuesta de solo mensajes dejaría la tabla
+          anterior en memoria y el rango se completaría con filas de otra consulta.</li>
+      </ul>
+
+<pre class="code"><span class="c">// src/pje/a4j.ts — el cuerpo del POST</span>
+<span class="k">export function</span> buildA4jBody($: CheerioAPI, req: A4jRequest, overrides: FormPairs = []): FormPairs {
+  <span class="k">const</span> fields = serializeForm($, req.formId);              <span class="c">// formulario entero, en orden</span>
+  <span class="k">for</span> (<span class="k">const</span> [suffix, value] <span class="k">of</span> overrides) {
+    <span class="k">if</span> (!setFieldBySuffix(fields, suffix, value)) {          <span class="c">// campos por sufijo</span>
+      <span class="k">throw new</span> UnexpectedStructureError(<span class="s">`field ending in "${suffix}" not found`</span>);
+    }
+  }
+  <span class="k">return</span> [
+    [<span class="s">'AJAXREQUEST'</span>, <span class="s">'_viewRoot'</span>],
+    ...fields,
+    [req.control, req.controlValue ?? req.control],        <span class="c">// ← el «clic»</span>
+    ...(req.extra ?? []),
+    [<span class="s">'AJAX:EVENTS_COUNT'</span>, <span class="s">'1'</span>],
+  ];
+}
+
+<span class="c">// src/pje/session.ts — y el disparo</span>
+<span class="k">const</span> [control, value] = <span class="k">this</span>.searchControl!;
+<span class="k">const</span> body = buildA4jBody($, { formId: <span class="k">this</span>.formId, control, controlValue: value }, overrides);
+<span class="k">const</span> res = <span class="k">await this</span>.http.post(CONFIG.paths.list, body, { headers: { Referer: …, Accept: <span class="s">'*/*'</span> } });
+<span class="k">if</span> (!applied.updatedIds.some((id) =&gt; /processosGridPanel|processosTable/.test(id))) {
+  <span class="k">throw new</span> UnexpectedStructureError(<span class="s">'search response did not render the results grid'</span>);  <span class="c">// ← señuelo detectado</span>
+}</pre>
+
+      <p class="xref"><b>Más detalle:</b> sección <a href="#s3">3.3 El ciclo de una petición A4J</a>.</p>
+    </div>
+  </details>
+
+  <details class="qa" id="p4">
+    <summary><span class="num">4</span><span class="txt">¿Dónde está eso en el código?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> cuatro saltos.
+      <code>session.open()</code> abre la sesión y <b>lee el control</b> con
+      <code>findSearchControl()</code>; <code>session.search()</code> lo <b>dispara</b>;
+      <code>discover.ts</code> decide <b>qué</b> buscar y <b>cuándo partir</b>. Nada más toca el portal
+      para buscar.</div>
+
+      <h4>Sustento — la cadena completa</h4>
+      <div class="flow">src/crawl/discover.ts     run()            ¿qué rango toca? ¿ya está completado?
+        │                 searchRange()    withRetry + política de reapertura de sesión
+        ▼
+src/pje/session.ts        open()           GET listView.seam → cookies + ViewState
+        │                 findSearchControl(html)   ← localiza fPP:j_id244
+        │                 search(criteria) POST A4J con el formulario entero
+        ▼
+src/pje/a4j.ts            buildA4jBody()   serializa + marcadores + control
+        │                 applyA4jResponse()  parchea el documento vivo
+        ▼
+src/pje/listParser.ts     parseListPage()  filas, aviso de tope, total anunciado
+        ▼
+src/storage/store.ts      upsert()         shard por proceso + índice</div>
+
+      <ul>
+        <li><b>La sesión no decide nada.</b> Sabe abrir, buscar y traer una ficha. No sabe qué rangos
+          existen ni cuándo reintentar.</li>
+        <li><b>La estrategia no sabe de HTML.</b> <code>discover.ts</code> ve filas y un booleano
+          <code>isCapped</code>; con eso parte el rango o lo cierra.</li>
+        <li><b>La sesión se recicla sola:</b> <code>sessionMaxRequests = 400</code> peticiones y se abre
+          una nueva, porque el portal guarda estado de vista por sesión.</li>
+      </ul>
+
+<pre class="code"><span class="c">// src/crawl/discover.ts — el punto exacto donde se une todo</span>
+page = <span class="k">await</span> withRetry(
+  <span class="k">async</span> () =&gt; {
+    <span class="k">if</span> (!<span class="k">this</span>.session.isOpen || <span class="k">this</span>.session.requestCount &gt;= CONFIG.sessionMaxRequests) {
+      <span class="k">await this</span>.session.open();                          <span class="c">// reciclado de sesión</span>
+    }
+    <span class="k">return this</span>.session.search({ dateFrom: isoToBr(range.from), dateTo: isoToBr(range.to), className });
+  },
+  {
+    label: <span class="s">`search ${label}`</span>,
+    onRetry: <span class="k">async</span> (err) =&gt; {
+      <span class="c">// Reabrir SOLO cuando el problema es la sesión: un 429 no debe costar</span>
+      <span class="c">// una petición extra contra un servidor que ya está frenando.</span>
+      <span class="k">if</span> (err <span class="k">instanceof</span> SessionExpiredError || err <span class="k">instanceof</span> WafBlockedError) <span class="k">await this</span>.session.open();
+    },
+  },
+);</pre>
+
+      <p class="xref"><b>Más detalle:</b> sección <a href="#s2">2 · Estructura de carpetas</a> y
+      <a href="#s4">4 · Descubrimiento</a>.</p>
+    </div>
+  </details>
+</section>
+
+<section class="sheet">
+  <details class="qa" id="p5">
+    <summary><span class="num">5</span><span class="txt">¿Cuáles son los intentos?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> <b>3 intentos por elemento</b>
+      (<code>MAX_ATTEMPTS=3</code>), y el presupuesto es <b>de cada elemento</b>, no global: cada búsqueda,
+      cada ficha y cada documento tiene su propio <code>withRetry</code>. Al agotarse, el elemento se anota
+      en <code>failed.json</code> con su motivo y <b>la corrida sigue</b>.</div>
+
+      <h4>Sustento</h4>
+      <table>
+        <thead><tr><th style="width:26%">Qué</th><th style="width:14%">Valor</th><th>Por qué</th></tr></thead>
+        <tbody>
+          <tr><td>Intentos por elemento</td><td><code>3</code></td><td>Medido: el error frecuente del portal es determinista por proceso, insistir más solo bloquea reloj.</td></tr>
+          <tr><td>Curva</td><td><code>2 s · 2ⁿ⁻¹</code></td><td>Con techo de 120 s y jitter completo, para que lo que falla junto no reintente junto.</td></tr>
+          <tr><td><code>Retry-After</code></td><td>manda</td><td>Instrucción explícita del servidor. Tope de cordura: 15 min.</td></tr>
+          <tr><td>WAF</td><td><code>90 s</code></td><td>Pausa fija + sesión nueva. Insistir rápido convierte el bloqueo blando en duro.</td></tr>
+          <tr><td>Página de error del portal</td><td><code>5 s</code></td><td>No es rate limiting: es un proceso que ese endpoint no sabe servir.</td></tr>
+          <tr><td>Movimentações</td><td><code>3</code>, sin reabrir</td><td>Una vista muerta no revive: repostearla es inútil (<code>retryIf</code>).</td></tr>
+        </tbody>
+      </table>
+
+<pre class="code"><span class="c">// src/util/retry.ts — el bucle entero</span>
+<span class="k">export async function</span> withRetry&lt;T&gt;(fn: (attempt: <span class="k">number</span>) =&gt; Promise&lt;T&gt;, opts: RetryOptions): Promise&lt;T&gt; {
+  <span class="k">const</span> max = opts.maxAttempts ?? CONFIG.retry.maxAttempts;      <span class="c">// 3</span>
+  <span class="k">let</span> lastErr: <span class="k">unknown</span>;
+  <span class="k">for</span> (<span class="k">let</span> attempt = <span class="n">1</span>; attempt &lt;= max; attempt++) {
+    <span class="k">try</span> { <span class="k">return await</span> fn(attempt); }
+    <span class="k">catch</span> (err) {
+      lastErr = err;
+      <span class="c">// Clasificar primero: lo no reintentable sale del bucle sin gastar intentos.</span>
+      <span class="k">if</span> (!isRetryable(err) || (opts.retryIf &amp;&amp; !opts.retryIf(err)) || attempt === max) <span class="k">break</span>;
+      <span class="k">const</span> wait = backoffMs(attempt, err);
+      log.warn(<span class="s">`${opts.label}: attempt ${attempt}/${max} failed…-&gt; waiting ${…}s`</span>);
+      <span class="k">await</span> sleep(wait);
+      <span class="k">if</span> (opts.onRetry) { <span class="c">/* reabrir sesión; si el hook falla, gasta ESTE intento */</span> }
+    }
+  }
+  <span class="k">throw</span> lastErr;                                                 <span class="c">// el llamador lo anota</span>
+}
+
+<span class="c">// src/config.ts</span>
+maxAttempts:   envInt(<span class="s">'MAX_ATTEMPTS'</span>, <span class="n">3</span>),
+baseDelayMs:   envInt(<span class="s">'RETRY_BASE_MS'</span>, <span class="n">2_000</span>),
+maxDelayMs:    envInt(<span class="s">'RETRY_MAX_MS'</span>, <span class="n">120_000</span>),
+wafCooldownMs: envInt(<span class="s">'WAF_COOLDOWN_MS'</span>, <span class="n">90_000</span>),</pre>
+
+      <p><b>Lo que ocurre al agotarlos:</b> <code>store.recordFailure(clave, fase, motivo, httpStatus)</code>.
+      El contador de <code>failed.json</code> es <b>acumulado entre corridas</b>, no dentro de una, y un
+      éxito posterior borra la entrada. <code>npm run retry-failed</code> reprocesa solo esa lista.</p>
+
+      <p class="xref"><b>Más detalle:</b> sección <a href="#s7">7 · Errores, reintentos y backoff</a> ·
+      banco <a href="#b1">pregunta 1</a> y <a href="#b7">pregunta 7</a> · capturas 10 y 11.</p>
+    </div>
+  </details>
+
+  <details class="qa" id="p6">
+    <summary><span class="num">6</span><span class="txt">¿Qué delay usas para no ser bloqueado?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> <b>700 ms mínimo entre peticiones + hasta 300 ms de
+      azar</b>, medido desde el final de la anterior. En la práctica sale ~1,1 s por petición contando al
+      servidor: un hilo, nunca en paralelo. Y si aun así aparece el bloqueo del WAF: <b>90 s de pausa y
+      sesión nueva</b>, no reintento rápido.</div>
+
+      <h4>Sustento</h4>
+      <ul>
+        <li><b>El jitter no es decorativo.</b> Un intervalo exacto es una firma: 700, 700, 700 ms es un
+          patrón que cualquier WAF cuenta. Con el azar, el intervalo real varía en cada petición.</li>
+        <li><b>El delay es global al cliente</b>, no por endpoint: la cuenta la lleva
+          <code>lastRequestAt</code> en <code>HttpClient</code>, así que descubrimiento, fichas y PDF
+          comparten el mismo ritmo.</li>
+        <li><b>El bloqueo del WAF llega con HTTP 200.</b> Es una página de ~22 KB titulada
+          «Requisição - Rejeitada». Si no se detecta por contenido, el scraper la guardaría como si fuera
+          una respuesta buena.</li>
+        <li><b>Un solo hilo, a propósito.</b> Paralelizar multiplicaría el ritmo por N contra un portal
+          público de un tribunal. Ver banco, pregunta 11.</li>
+      </ul>
+
+<pre class="code"><span class="c">// src/http/client.ts — la pausa de cortesía</span>
+<span class="k">private async</span> politeDelay(): Promise&lt;<span class="k">void</span>&gt; {
+  <span class="k">const</span> wait = CONFIG.minDelayMs + Math.random() * CONFIG.jitterMs;   <span class="c">// 700 ms + [0,300) ms</span>
+  <span class="k">const</span> due = <span class="k">this</span>.lastRequestAt + wait;
+  <span class="k">const</span> now = Date.now();
+  <span class="k">if</span> (due &gt; now) <span class="k">await</span> sleep(due - now);
+  <span class="k">this</span>.lastRequestAt = Date.now();
+}
+
+<span class="c">// …y el bloqueo que llega disfrazado de 200</span>
+<span class="k">if</span> (/text\/html/i.test(res.contentType)) {
+  <span class="k">const</span> head = res.text.slice(<span class="n">0</span>, <span class="n">4000</span>);
+  <span class="k">if</span> (/Requisi[cç][aã]o\s*-\s*Rejeitada|seu acesso ao servi[cç]o foi bloqueado/i.test(head)) {
+    <span class="k">throw new</span> WafBlockedError();                                   <span class="c">// → 90 s + sesión nueva</span>
+  }
+}
+
+<span class="c">// src/util/retry.ts — la excepción a la curva exponencial</span>
+<span class="k">if</span> (err <span class="k">instanceof</span> WafBlockedError) <span class="k">return</span> CONFIG.retry.wafCooldownMs;      <span class="c">// 90 000 ms fijos</span></pre>
+
+      <p><b>El dato observado:</b> el WAF del portal es un F5 y es <b>intermitente</b>. Disparadores vistos
+      en vivo: enviar una cabecera <code>Cookie:</code> vacía y salir por rangos de VPN o datacenter. La
+      misma petición sin esos rasgos pasa. Por eso el README avisa de no usar VPN.</p>
+
+      <p class="xref"><b>Más detalle:</b> banco <a href="#b8">pregunta 8 (429)</a> y
+      <a href="#b11">pregunta 11 (por qué no paralelizo)</a> · captura 12 (≈1,3 s por PDF).</p>
+    </div>
+  </details>
+</section>
+
+<section class="sheet">
+  <details class="qa" id="p7">
+    <summary><span class="num">7</span><span class="txt">¿Qué usa alguien para replicarlo?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> cinco piezas, en este orden: <b>README</b> para instalar y
+      correr, <b>esta guía</b> para entender el diseño, <b>docs/protocolo.md</b> para el protocolo del
+      portal, <b>el código</b> para el detalle, y <b>npm test</b> para comprobar que todo eso sigue siendo
+      cierto sin tocar la red.</div>
+
+      <h4>Sustento — la ruta de lectura</h4>
+      <div class="steps three">
+        <div class="step"><b><span class="n">1</span>README.md</b>
+          <p>Instalación, comandos, variables de entorno, salida, limitaciones. Es lo único que hace falta
+          para <b>correrlo</b>.</p></div>
+        <div class="step"><b><span class="n">2</span>Esta guía</b>
+          <p>Por qué el diseño es así: partición en vez de paginación, clasificación de errores,
+          reanudación.</p></div>
+        <div class="step"><b><span class="n">3</span>docs/protocolo.md</b>
+          <p>El portal por dentro, verificado en vivo. Es lo que hay que releer si el tribunal cambia
+          algo.</p></div>
+        <div class="step"><b><span class="n">4</span>src/</b>
+          <p>Cada módulo abre con un comentario que explica su papel. <code>pje/</code> es la parte
+          frágil.</p></div>
+        <div class="step"><b><span class="n">5</span>npm test</b>
+          <p>56 tests con fixtures reales del portal, sin red. Ejecuta las políticas de reintento con
+          relojes falsos.</p></div>
+        <div class="step"><b><span class="n">6</span>Corrida acotada</b>
+          <p>Una demo de ~2 minutos con límites, antes de lanzar la corrida completa.</p></div>
+      </div>
+
+      <div class="term">
+        <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>bash — de cero a una demo verificable</span></div>
+<pre><span class="t-dim">$</span> <span class="t-cmd">git clone https://github.com/Ellisvelandia/scraper-challenge</span>
+<span class="t-dim">$</span> <span class="t-cmd">cd scraper-challenge &amp;&amp; npm install</span>
+
+<span class="t-dim"># 1) que el código compila y las reglas se cumplen — sin tocar el portal</span>
+<span class="t-dim">$</span> <span class="t-cmd">npm run typecheck &amp;&amp; npm test</span>
+
+<span class="t-dim"># 2) demo acotada contra el portal real (~2 min): 3 procesos, 4 PDF</span>
+<span class="t-dim">$</span> <span class="t-cmd">DATE_FROM=1990-01-01 DATE_TO=1994-12-31 MAX_PROCESSES=3 MAX_DOCUMENTS=4 npm run all</span>
+
+<span class="t-dim"># 3) qué salió</span>
+<span class="t-dim">$</span> <span class="t-cmd">npm run status</span></pre>
+      </div>
+      <div class="cap"><b>Captura 15.</b> En PowerShell las variables se fijan antes:
+      <code>$env:MAX_DOCUMENTS='4'; npm run all</code>. Requisitos: Node ≥ 18 y <b>sin VPN</b>, porque el
+      WAF bloquea rangos de datacenter.</div>
+
+      <p class="xref"><b>Más detalle:</b> banco <a href="#b13">pregunta 13 (probar sin red)</a>.</p>
+    </div>
+  </details>
+
+  <details class="qa" id="p8">
+    <summary><span class="num">8</span><span class="txt">¿Cuál es el proceso, de principio a fin?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> hay <b>dos procesos distintos</b> y conviene no
+      mezclarlos. El de <b>investigación</b> se hizo una vez, a mano, y produjo
+      <code>docs/protocolo.md</code>. El de <b>ejecución</b> es <code>npm run all</code>: fase 1 descubre
+      particionando por fecha, fase 2 enriquece y descarga. Ambas fases son reanudables.</div>
+
+      <div class="two">
+        <div>
+          <h4>Investigación (una vez, manual)</h4>
+          <ol>
+            <li>Abrir el portal con DevTools y mirar la pestaña Network.</li>
+            <li>Descubrir que no hay URLs: todo es POST A4J sobre la misma vista.</li>
+            <li>Reproducir la búsqueda con HTTP puro hasta obtener la misma respuesta.</li>
+            <li>Encontrar el señuelo y el <code>a4j:jsFunction</code> real.</li>
+            <li>Comprobar que no hay paginador y que el tope es 30.</li>
+            <li>Medir el volumen en frío.</li>
+            <li>Escribir <code>docs/protocolo.md</code> y guardar fixtures.</li>
+          </ol>
+        </div>
+        <div>
+          <h4>Ejecución (cada corrida)</h4>
+          <ol>
+            <li><code>npm run all</code> → <code>Discoverer.run()</code>.</li>
+            <li>Medir el total anunciado (una petición, sin ingesta).</li>
+            <li>Buscar el rango; si vuelve con tope, partirlo y repetir.</li>
+            <li>Guardar filas y marcar el rango completado.</li>
+            <li><code>Enricher.run()</code>: ficha, partes, movimentações, documentos.</li>
+            <li>Descargar cada PDF, validar, <code>.part</code> → renombrar.</li>
+            <li>Anotar fallos en <code>failed.json</code> y seguir.</li>
+          </ol>
+        </div>
+      </div>
+
+<pre class="code"><span class="c">// src/index.ts — las dos fases, una detrás de otra</span>
+<span class="k">case</span> <span class="s">'all'</span>: {
+  <span class="k">const</span> d = <span class="k">await new</span> Discoverer(store).run();
+  log.info(<span class="s">`discovery: ${d.searches} searches, ${d.newProcesses} new processes (${store.count()} total)`</span>);
+  <span class="k">const</span> e = <span class="k">await new</span> Enricher(store).run({ skipDownloads: CONFIG.skipDownloads });
+  log.info(<span class="s">`download: ${e.detailsFetched} details, ${e.documentsDownloaded} PDFs, ${e.documentsFailed} failed`</span>);
+  <span class="k">return</span> <span class="n">0</span>;
+}</pre>
+
+      <p><b>Se puede correr cada fase por separado</b> (<code>npm run discover</code>,
+      <code>npm run download</code>), y hay un modo sin PDF (<code>SKIP_DOWNLOADS=1</code>) que recorre
+      todas las fichas y cataloga los documentos sin bajarlos: sirve para asegurar metadatos rápido y
+      descargar después.</p>
+
+      <p class="xref"><b>Más detalle:</b> secciones <a href="#s4">4</a> y <a href="#s5">5</a> ·
+      diagrama de la sección <a href="#s1">1</a>.</p>
+    </div>
+  </details>
+</section>
+
+<section class="sheet">
+  <details class="qa" id="p9">
+    <summary><span class="num">9</span><span class="txt">¿Cómo verificaste que lo descargado es un PDF?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> tres comprobaciones <b>antes</b> de que el fichero
+      exista con su nombre definitivo: <b>status 200</b>, <b>firma <code>%PDF-</code> en los cinco
+      primeros bytes</b> y <b>tamaño ≥ 200 B</b>. Y después lo abrí: los acórdãos se leen, y el número de
+      documento impreso dentro coincide con el del nombre del fichero.</div>
+
+      <h4>Sustento</h4>
+      <ul>
+        <li><b>Los bytes deciden, no la cabecera.</b> El <code>content-type</code> solo se usa para
+          redactar el mensaje de error: un servidor puede mentir en la cabecera, los bytes no.</li>
+        <li><b>El caso real que cubre:</b> el portal responde <b>HTML</b> donde debería ir un PDF cuando
+          el enlace ya no vale para esa sesión. Con validación, eso es un
+          <code>InvalidDownloadError</code> y el documento queda <code>failed</code>; sin ella, quedaría
+          un <code>.pdf</code> de 22 KB que no abre.</li>
+        <li><b>El tamaño mínimo</b> descarta respuestas vacías o truncadas que sí empiezan por
+          <code>%PDF-</code>.</li>
+      </ul>
+
+<pre class="code"><span class="c">// src/pje/documents.ts</span>
+<span class="k">export function</span> validatePdf(res: HttpResponse): <span class="k">void</span> {
+  <span class="k">if</span> (res.status !== <span class="n">200</span>) <span class="k">throw new</span> InvalidDownloadError(<span class="s">`HTTP ${res.status} instead of a PDF`</span>);
+  <span class="k">const</span> magic = res.body.subarray(<span class="n">0</span>, <span class="n">5</span>).toString(<span class="s">'latin1'</span>);   <span class="c">// ← los bytes, no la cabecera</span>
+  <span class="k">if</span> (magic !== <span class="s">'%PDF-'</span>) {
+    <span class="k">const</span> kind = /text\/html/i.test(res.contentType) ? <span class="s">'an HTML page'</span> : <span class="s">`content-type …`</span>;
+    <span class="k">throw new</span> InvalidDownloadError(<span class="s">`server returned ${kind} instead of a PDF (${res.body.length} B)`</span>);
+  }
+  <span class="k">if</span> (res.body.length &lt; MIN_PDF_BYTES) <span class="k">throw new</span> InvalidDownloadError(<span class="s">`PDF too small`</span>);  <span class="c">// 200 B</span>
+}</pre>
+
+      <div class="term">
+        <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>bash — los mismos cinco bytes, ya en disco</span></div>
+<pre><span class="t-dim">$</span> <span class="t-cmd">head -c 16 …_3469065_2025-10-27_Acordao.pdf | od -c</span>
+0000000   <span class="t-ok">%   P   D   F   -</span>   1   .   4  \n   %  342 343 317 323  \n   4
+0000020</pre>
+      </div>
+      <div class="cap"><b>Captura 16.</b> La firma que comprueba <code>validatePdf()</code>, leída del
+      fichero guardado. Los 11 PDF de la corrida la tienen (captura 6).</div>
+
+      <div class="shot half">
+        <img src="img/acordao-p1.png" alt="Primera página del acórdão descargado por el scraper">
+      </div>
+      <div class="cap"><b>Captura 17.</b> Prueba final: la <b>primera página</b> del fichero
+      <code>BR-TRF5-0000007-07.1985.8.20.0124_3469065_2025-10-27_Acordao.pdf</code>, renderizada desde el
+      PDF que hay en <code>output/pdfs/</code>. Se lee un acórdão real del TRF5 (11 páginas): la validación
+      no solo dice que los bytes empiezan por <code>%PDF-</code>, el documento abre y tiene contenido.</div>
+
+      <p class="xref"><b>Más detalle:</b> sección <a href="#s6">6.2 La validación</a> ·
+      banco <a href="#b4">pregunta 4</a>.</p>
+    </div>
+  </details>
+</section>
+
+<section class="sheet">
+  <details class="qa" id="p10">
+    <summary><span class="num">10</span><span class="txt">¿Cómo se guardan los PDF?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> una <b>carpeta por proceso</b> bajo
+      <code>output/pdfs/</code>, y dentro un nombre que se explica solo:
+      <code>&lt;id&gt;_&lt;idDocumento&gt;_&lt;fecha&gt;_&lt;título&gt;.pdf</code>. Se escribe primero como
+      <code>.part</code> y se renombra solo tras validar. El JSON del proceso guarda la ruta relativa y el
+      tamaño, así que el catálogo y el disco se pueden contrastar.</div>
+
+      <h4>Sustento</h4>
+<pre class="code"><span class="c">// src/pje/documents.ts — el nombre</span>
+<span class="k">static</span> fileFor(process: ProcessRecord, doc: DocumentRecord): <span class="k">string</span> {
+  <span class="k">const</span> stem = [process.id, doc.idProcessoDocumento,
+               doc.date ? doc.date.slice(<span class="n">0</span>, <span class="n">10</span>) : <span class="k">undefined</span>,
+               safeFileName(doc.title, <span class="n">60</span>)]                 <span class="c">// título saneado y recortado</span>
+    .filter(Boolean).join(<span class="s">'_'</span>);
+  <span class="k">return</span> path.join(<span class="s">'pdfs'</span>, safeFileName(process.id, <span class="n">80</span>), <span class="s">`${stem}.pdf`</span>);
+}
+
+<span class="c">// …y la escritura, solo DESPUÉS de validar</span>
+validatePdf(res);
+fs.mkdirSync(path.dirname(target), { recursive: <span class="k">true</span> });
+<span class="k">const</span> part = <span class="s">`${target}.part`</span>;
+fs.writeFileSync(part, res.body);
+renameSyncWithRetry(part, target);          <span class="c">// rename atómico (reintenta si Windows lo tiene tomado)</span>
+
+<span class="c">// src/crawl/enrich.ts — y el catálogo</span>
+<span class="k">this</span>.store.updateDocument(process.id, { ...doc, status: <span class="s">'downloaded'</span>, file: result.file, bytes: result.bytes });</pre>
+
+      <div class="term">
+        <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>bash — output/pdfs/BR-TRF5-0000007-07.1985.8.20.0124/</span></div>
+<pre><span class="t-dim">$</span> <span class="t-cmd">ls -la --time-style=long-iso output/pdfs/BR-TRF5-0000007-07.1985.8.20.0124/</span>
+-rw-r--r-- 1 js <span class="t-warn">61197</span> 2026-08-26 00:18 BR-TRF5-0000007-07.1985.8.20.0124_<span class="t-info">3469065</span>_<span class="t-str">2025-10-27</span>_Acordao.pdf
+-rw-r--r-- 1 js <span class="t-warn">36044</span> 2026-08-26 00:18 BR-TRF5-0000007-07.1985.8.20.0124_<span class="t-info">7222997</span>_<span class="t-str">2026-05-11</span>_Acordao.pdf
+                 <span class="t-dim">↑ bytes</span>          <span class="t-dim">           ↑ proceso            ↑ documento  ↑ fecha  ↑ título</span></pre>
+      </div>
+      <div class="cap"><b>Captura 18.</b> Dos acórdãos del mismo proceso. El nombre no necesita un índice
+      para saber qué es cada fichero: proceso, documento, fecha y título están en él. Sin
+      <code>.part</code> a la vista: solo quedan los renombrados.</div>
+
+      <h4>Por qué el nombre es verificable</h4>
+      <div class="shot strip">
+        <img src="img/acordao-cabecera.png" alt="Cabecera del acórdão: PODER JUDICIÁRIO TRF5 y número de proceso">
+      </div>
+      <div class="shot strip">
+        <img src="img/acordao-pie.png" alt="Pie del acórdão con el número de documento y la URL del portal">
+      </div>
+      <div class="cap"><b>Captura 19.</b> Dentro del PDF: la cabecera imprime
+      <code>Nº 0000007-07.1985.8.20.0124</code> y el pie <code>Num. 3469065</code> con fecha
+      <code>27/10/2025</code> y la URL de <code>pjett.trf5.jus.br</code>. Son exactamente las tres piezas
+      del nombre del fichero. <b>El nombre no es una etiqueta que yo inventé: es la identidad que el
+      propio documento declara.</b></div>
+
+      <div class="term">
+        <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>output/processes/BR-TRF5-0003216-56.1994.4.05.8001.json — un documento descargado</span></div>
+<pre>{
+  <span class="t-str">"id"</span>: <span class="t-str">"BR-TRF5-0003216-56.1994.4.05.8001-DOC-7907550"</span>,
+  <span class="t-str">"idProcessoDocumento"</span>: <span class="t-str">"7907550"</span>,
+  <span class="t-str">"idBin"</span>: <span class="t-str">"7800600"</span>,
+  <span class="t-str">"date"</span>: <span class="t-str">"2021-01-20T18:14:41"</span>,
+  <span class="t-str">"title"</span>: <span class="t-str">"Decisão"</span>,
+  <span class="t-str">"download"</span>: <span class="t-str">"binary"</span>,                     <span class="t-dim">← ruta usada (binary | viewer)</span>
+  <span class="t-str">"status"</span>: <span class="t-ok">"downloaded"</span>,
+  <span class="t-str">"file"</span>: <span class="t-str">"pdfs\\BR-TRF5-0003216-56.1994.4.05.8001\\…_7907550_2021-01-20_Decisao.pdf"</span>,
+  <span class="t-str">"bytes"</span>: <span class="t-warn">20152</span>
+}</pre>
+      </div>
+      <div class="cap"><b>Captura 20.</b> El registro del catálogo. <code>file</code> es relativa a
+      <code>output/</code> (el JSON es portable) y <code>bytes</code> permite contrastar el catálogo con el
+      disco sin volver a descargar nada. Los documentos aún no bajados quedan como
+      <code>"status": "pending"</code>.</div>
+
+      <p class="xref"><b>Más detalle:</b> sección <a href="#s6">6.3 El nombre del fichero</a> ·
+      banco <a href="#b6">pregunta 6 (identificadores)</a>.</p>
+    </div>
+  </details>
+</section>
+
+<section class="sheet">
+  <details class="qa" id="p11">
+    <summary><span class="num">11</span><span class="txt">¿Qué es el SHA, en cristiano?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> es la <b>huella digital de un fichero</b>: 64 caracteres
+      calculados a partir de su contenido. Si cambia un solo byte, la huella cambia entera. Sirve para
+      responder «¿estos dos ficheros son idénticos?» sin compararlos byte a byte, y para detectar que algo
+      se corrompió. <b>Aviso: este scraper no guarda SHA hoy.</b> La identidad de un documento es
+      <code>idProcessoDocumento</code> + <code>bytes</code>.</div>
+
+      <h4>Sustento</h4>
+      <ul>
+        <li><b>Qué es exactamente.</b> SHA-256 es una función que convierte cualquier cantidad de bytes en
+          un número de 256 bits. Mismo contenido → misma huella, siempre. Contenido distinto → huella
+          distinta, en la práctica sin excepciones.</li>
+        <li><b>Para qué serviría aquí:</b> (a) detectar que el portal <b>reemplazó</b> un documento
+          manteniendo el mismo id; (b) descartar descargas repetidas del mismo contenido bajo nombres
+          distintos; (c) dar un recibo verificable de que el fichero entregado es el que se descargó.</li>
+        <li><b>Qué hay hoy en su lugar:</b> el fichero se salta si ya existe y pesa más que el mínimo,
+          y el catálogo guarda <code>bytes</code>. Eso detecta un fichero truncado, pero no una
+          sustitución del mismo tamaño.</li>
+        <li><b>Coste de añadirlo:</b> tres líneas en <code>documents.ts</code>, un campo en
+          <code>DocumentRecord</code>. No está porque no se pidió, no porque sea difícil. Decirlo así en la
+          entrevista vale más que fingir que está.</li>
+      </ul>
+
+      <div class="term">
+        <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>bash — la huella de un PDF ya descargado (no es parte del scraper)</span></div>
+<pre><span class="t-dim">$</span> <span class="t-cmd">node -e "const c=require('crypto'),f=require('fs');const b=f.readFileSync(p);
+       console.log(c.createHash('sha256').update(b).digest('hex'), b.length)"</span>
+<span class="t-ok">a891bc5fc75d35818abd3054aee75f3f03982cc75c0409f34c95a7a8bff19a99</span> <span class="t-warn">61197</span></pre>
+      </div>
+      <div class="cap"><b>Captura 21.</b> Huella real del acórdão de la captura 17. Cambiar un byte de ese
+      fichero produciría 64 caracteres completamente distintos: por eso sirve como verificación de
+      integridad y no solo como identificador.</div>
+
+<pre class="code"><span class="c">// Cómo se añadiría (NO está en el código hoy):</span>
+<span class="k">import</span> { createHash } <span class="k">from</span> <span class="s">'crypto'</span>;
+<span class="k">const</span> sha256 = createHash(<span class="s">'sha256'</span>).update(res.body).digest(<span class="s">'hex'</span>);
+<span class="k">return</span> { file: relative, bytes: res.body.length, sha256 };   <span class="c">// → al registro del documento</span></pre>
+
+      <p class="xref"><b>Relacionado:</b> banco <a href="#b6">pregunta 6</a> — la identidad de un
+      <i>proceso</i> sí está resuelta: se adopta el número CNJ con prefijo de fuente
+      (<code>BR-TRF5-…</code>), que ya es único a nivel nacional.</p>
+    </div>
+  </details>
+</section>
+
+<section class="sheet">
+  <details class="qa" id="p12">
+    <summary><span class="num">12</span><span class="txt">¿Cómo se validó que el scraper está corriendo bien?</span><span class="hint"></span></summary>
+    <div class="body">
+      <div class="short"><b>Respuesta corta:</b> con <b>siete comprobaciones independientes</b>, no con
+      «no dio error». Tres son offline (tests, tipos, ficheros en disco) y cuatro miran la corrida real
+      (progreso, log, fallos anotados, reanudación). Todas las cifras de abajo se volvieron a medir el
+      <b>2026-08-30</b> para esta sección.</div>
+
+      <table>
+        <thead><tr><th style="width:20%">Qué se comprueba</th><th style="width:30%">Con qué</th><th>Qué verías si estuviera mal</th></tr></thead>
+        <tbody>
+          <tr><td><b>La lógica</b></td><td><code>npm test</code> — 56 tests, 8 suites, fixtures reales del portal, sin red</td><td>Un parser que ya no reconoce la página guardada, o una política de reintento que cambió sin querer.</td></tr>
+          <tr><td><b>Los tipos</b></td><td><code>npm run typecheck</code> (código y tests)</td><td>Cualquier salida es un error; el silencio es la señal buena.</td></tr>
+          <tr><td><b>El avance</b></td><td><code>npm run status</code>: descubiertos contra total <b>medido</b></td><td>Un contador que no sube entre corridas, o descubiertos por encima del total anunciado.</td></tr>
+          <tr><td><b>El comportamiento</b></td><td><code>output/scraper.log</code>: búsqueda, ficha, PDF, con marca de tiempo</td><td>Peticiones más rápidas que la pausa de cortesía, o fichas sin su línea de búsqueda previa.</td></tr>
+          <tr><td><b>El resultado</b></td><td>PDF en disco que abren y empiezan por <code>%PDF-</code></td><td>Ficheros de 22 KB que resultan ser la página de bloqueo del WAF renombrada.</td></tr>
+          <tr><td><b>Los fallos</b></td><td><code>failed.json</code>: motivo, fase, intentos, status HTTP</td><td>Un fichero vacío en una corrida larga sería sospechoso, no tranquilizador.</td></tr>
+          <tr><td><b>La reanudación</b></td><td>Ctrl+C y relanzar: no repite rangos ni duplica procesos</td><td>El contador de «nuevos» volvería a subir sobre lo ya guardado.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="term">
+        <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>PowerShell — npm test · 2026-08-30 03:37 UTC</span></div>
+<pre>Test Suites: <span class="t-ok">8 passed</span>, 8 total
+Tests:       <span class="t-ok">56 passed</span>, 56 total
+Time:        21.312 s
+
+<span class="t-dim">PS&gt;</span> <span class="t-cmd">npm run typecheck</span>
+<span class="t-dim">(sin salida = sin errores)</span></pre>
+      </div>
+      <div class="cap"><b>Captura 22.</b> Repetido hoy sobre el mismo repositorio. Los WARN de reintento
+      que aparecen entre medias son las políticas ejercitándose con relojes falsos, no fallos (captura 8).</div>
+
+      <div class="term">
+        <div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i><span>PowerShell — npm run status · 2026-08-30 03:37 UTC</span></div>
+<pre>processes discovered : <span class="t-warn">10062 of 107945 announced by the portal</span>
+details fetched      : <span class="t-ok">1508</span>
+documents            : <span class="t-ok">11748</span> (downloaded 8, pending 11740, failed 0, unavailable 0)
+completed ranges     : 1 (<span class="t-str">1985-01-01 .. 2020-06-11</span>)
+saturated days       : 1
+failures to retry    : <span class="t-warn">67</span></pre>
+      </div>
+      <div class="cap"><b>Captura 23.</b> Cuatro días después de la captura 7, con la corrida avanzada:
+      <b>123 → 1.508 fichas</b> y <b>1.101 → 11.748 documentos catalogados</b>. El total anunciado subió de
+      <b>106.763 a 107.945</b>: el portal sigue recibiendo procesos nuevos, y el número se vuelve a medir
+      en cada corrida en vez de estar escrito en el código. Es la mejor prueba de que el denominador es
+      medido y no inventado.</div>
+
+      <h4>Lo que dicen los 67 fallos anotados</h4>
+      <ul>
+        <li><b>64</b> son <code>errorUnexpected.seam</code> sobre fichas concretas: el error determinista
+          del portal. Tres intentos, anotado, y la corrida sigue. <code>npm run retry-failed</code> los
+          reprocesa.</li>
+        <li><b>3</b> son <code>detail page has neither Dados do Processo nor the documents grid</code>:
+          un <code>UnexpectedStructureError</code>, que <b>nunca se reintenta</b> a propósito. Es la señal
+          de «el HTML no es el que espero», y es la que hay que mirar primero si algún día la cifra crece:
+          significaría que el portal cambió, no que la red falla.</li>
+        <li><b>Ninguno</b> es de descarga: <code>failed 0</code> en la línea de documentos.</li>
+      </ul>
+
+      <h4>Una comprobación que sí encontró algo</h4>
+      <p>Contrastar el catálogo contra el disco cuesta dos líneas de script y es la comprobación que dio
+      señal:
+      <b>11 PDF en <code>output/pdfs/</code> y 8 registros con <code>file</code></b> en los JSON. Los tres
+      sin registro son los de la primera corrida (26-08, 00:18), anterior al formato actual de
+      almacenamiento por shards; los ficheros están completos y abren.</p>
+      <p><b>Por qué no rompe nada:</b> la descarga es idempotente. Si el fichero ya está en disco y pesa
+      más que el mínimo, <code>download()</code> devuelve su ruta y su tamaño <b>sin volver a pedirlo al
+      portal</b>, y el catálogo se corrige solo en la siguiente pasada. Y la dirección del error es la
+      segura: sobra un fichero en disco, no falta.</p>
+
+<pre class="code"><span class="c">// src/pje/documents.ts — por eso el desajuste se arregla sin red</span>
+<span class="k">const</span> target = path.join(CONFIG.output.dir, relative);
+<span class="k">if</span> (fs.existsSync(target) &amp;&amp; fs.statSync(target).size &gt; MIN_PDF_BYTES) {
+  <span class="k">return</span> { file: relative, bytes: fs.statSync(target).size };     <span class="c">// ya estaba: no se descarga otra vez</span>
+}
+
+<span class="c">// src/storage/store.ts — y por eso un re-fetch de la ficha nunca degrada un descargado</span>
+<span class="k">if</span> (prev.status === <span class="s">'downloaded'</span> &amp;&amp; d.status !== <span class="s">'downloaded'</span>) {
+  merged.status = prev.status; merged.file = prev.file; merged.bytes = prev.bytes;
+}</pre>
+
+      <div class="box ok">
+        <span class="lbl">La demo acotada, para enseñarlo en vivo</span>
+        <code>DATE_FROM=1990-01-01 DATE_TO=1994-12-31 MAX_PROCESSES=3 MAX_DOCUMENTS=4 npm run all</code> —
+        dos minutos, escribe en el mismo <code>output/</code> y deja rastro en el log, los JSON y los PDF.
+        Es la forma de demostrar el ciclo completo sin pedirle a nadie que espere una corrida de días.
+      </div>
+
+      <div class="box warn">
+        <span class="lbl">La regla operativa que no se puede saltar</span>
+        Una sola corrida por carpeta de salida. El <code>Store</code> es de un solo proceso: dos corridas
+        contra el mismo <code>output/</code> se pisan el índice. Antes de lanzar, comprobar que no hay un
+        <code>ts-node src/index.ts</code> vivo. Matarlo de golpe sí es seguro: los shards están en disco y
+        <code>reconcileShards()</code> recupera lo que el índice no alcanzó a registrar.
+      </div>
+
+      <p class="xref"><b>Más detalle:</b> sección <a href="#s9">9 · Capturas de la corrida real</a> ·
+      banco <a href="#b9">pregunta 9 (cobertura)</a> y <a href="#b13">pregunta 13 (tests sin red)</a>.</p>
+    </div>
+  </details>
+
+  <div class="box">
+    <span class="lbl">El resumen de las doce en una línea cada una</span>
+    <ol>
+      <li><b>Origen:</b> «Miré lo que el navegador envía, no lo que la página muestra.»</li>
+      <li><b>El botón:</b> «No busco el botón, busco <code>executarPesquisa=function</code>.»</li>
+      <li><b>Activarlo:</b> «POST del formulario entero más el control oculto. No hay clic.»</li>
+      <li><b>Dónde:</b> «<code>open</code> lo lee, <code>search</code> lo dispara, <code>discover</code> decide qué buscar.»</li>
+      <li><b>Intentos:</b> «Tres por elemento, presupuesto propio, y al agotarse <code>failed.json</code> sin parar la corrida.»</li>
+      <li><b>Delay:</b> «700 ms más azar entre peticiones; 90 s y sesión nueva si aparece el WAF.»</li>
+      <li><b>Replicarlo:</b> «README, guía, protocolo, código, <code>npm test</code>. En ese orden.»</li>
+      <li><b>End-to-end:</b> «Investigación una vez; ejecución en dos fases reanudables.»</li>
+      <li><b>Es un PDF:</b> «Status, firma <code>%PDF-</code> y tamaño, antes de que el fichero tenga nombre definitivo.»</li>
+      <li><b>Se guardan:</b> «Carpeta por proceso, nombre autoexplicativo, <code>.part</code> y renombrado.»</li>
+      <li><b>SHA:</b> «Huella del contenido. Hoy no la guardo, y lo digo.»</li>
+      <li><b>Va bien:</b> «Siete comprobaciones, tres sin red, y los huecos anotados en vez de escondidos.»</li>
+    </ol>
+  </div>
+</section>
+
+</body>
+</html>

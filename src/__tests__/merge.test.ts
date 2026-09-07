@@ -1,6 +1,6 @@
-/** Tests for the pure store helpers: range merging and document merging. */
+/** Tests for the pure merge logic: range merging and document merging. */
 import assert from 'node:assert/strict';
-import { mergeDocuments, mergeRanges } from '../storage/store';
+import { mergeDocuments, mergeRanges } from '../storage/merge';
 import { DocumentRecord } from '../types';
 
 test('mergeRanges coalesces adjacent and overlapping ranges', () => {
